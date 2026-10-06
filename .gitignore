@@ -189,4 +189,5 @@ sphinx_*/
 /kos/
 /output/
 /recovery/
+/rootfs/rkdev_arm64
 
