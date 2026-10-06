@@ -1,0 +1,3085 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+    <title>RKdev - 固件更新 & 终端</title>
+    <link rel="stylesheet" href="/res/xterm.min.css">
+    <script src="/res/xterm.min.js"></script>
+    <script src="/res/addon-fit.min.js"></script>
+    <style>
+        :root {
+            --bg-page: #f0f2f5;
+            --bg-card: #fff;
+            --bg-navbar: #fff;
+            --bg-input: #fff;
+            --bg-hover: #f8faff;
+            --bg-section: #f0f4fa;
+            --bg-info: #eef2fa;
+            --bg-warning: #fff9c4;
+            --bg-success: #d4edda;
+            --bg-error: #f8d7da;
+            --bg-tag: #eef2fa;
+            --bg-code: #1e1e1e;
+            --bg-overlay: rgba(255,255,255,.92);
+            --bg-footer: #f0f2f5;
+            --text-primary: #333;
+            --text-secondary: #555;
+            --text-muted: #666;
+            --text-light: #888;
+            --text-faint: #aaa;
+            --accent: #2c5aa0;
+            --accent-light: #5c7ebf;
+            --accent-bg: #eef2fa;
+            --accent-border: #d4dfee;
+            --border: #e0e0e0;
+            --border-light: #e8eef8;
+            --border-faint: #eee;
+            --shadow: rgba(0,0,0,.08);
+            --shadow-light: rgba(0,0,0,.05);
+            --danger: #d9534f;
+            --success: #28a745;
+            --warning-text: #8d6e00;
+            --warning-border: #ffe082;
+            --bar-bg: #e0e0e0;
+            --progress-text: #333;
+        }
+        [data-theme="dark"] {
+            --bg-page: #0d1117;
+            --bg-card: #161b22;
+            --bg-navbar: #161b22;
+            --bg-input: #0d1117;
+            --bg-hover: #1c2333;
+            --bg-section: #161b22;
+            --bg-info: #1c2333;
+            --bg-warning: #3d3000;
+            --bg-success: #1a3a1a;
+            --bg-error: #3d1a1a;
+            --bg-tag: #1c2333;
+            --bg-code: #0d1117;
+            --bg-overlay: rgba(13,17,23,.95);
+            --bg-footer: #161b22;
+            --text-primary: #e6edf3;
+            --text-secondary: #c9d1d9;
+            --text-muted: #b1bac4;
+            --text-light: #7d8590;
+            --text-faint: #6e7681;
+            --accent: #58a6ff;
+            --accent-light: #79c0ff;
+            --accent-bg: #1c2333;
+            --accent-border: #30363d;
+            --border: #30363d;
+            --border-light: #21262d;
+            --border-faint: #21262d;
+            --shadow: rgba(0,0,0,.3);
+            --shadow-light: rgba(0,0,0,.2);
+            --danger: #f85149;
+            --success: #3fb950;
+            --warning-text: #d29922;
+            --warning-border: #4d3d00;
+            --bar-bg: #21262d;
+            --progress-text: #e6edf3;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Microsoft YaHei", Arial, sans-serif; background: var(--bg-page); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding-bottom: 60px; transition: background .3s; }
+
+        .navbar { width: 100%; background: var(--bg-navbar); box-shadow: 0 2px 4px var(--shadow); margin-bottom: 30px; transition: background .3s; position: sticky; top: 0; z-index: 100; }
+        .nav-topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 52px; }
+        .nav-brand { font-size: 42px; font-weight: 900; letter-spacing: 4px; white-space: nowrap; cursor: pointer; position: relative; color: #1a5fc4; font-family: "Cascadia Code", "Consolas", "SF Mono", monospace; text-shadow: 0 0 1px rgba(26,95,196,.8); transition: all .35s ease; }
+        .nav-brand::after { content: ''; position: absolute; left: 0; bottom: -2px; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #1a5fc4, #00d4ff, transparent); transform: scaleX(0); transition: transform .3s ease; }
+        .nav-brand:hover { color: #00d4ff; text-shadow: 0 0 4px rgba(0,212,255,.3); letter-spacing: 7px; }
+        .nav-brand:hover::after { transform: scaleX(1); box-shadow: 0 0 4px rgba(0,212,255,.3); }
+        .nav-brand-logo { position: absolute; top: calc(100% + 10px); left: 0; z-index: 999; opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; pointer-events: none; }
+        .nav-brand:hover .nav-brand-logo { opacity: 1; visibility: visible; }
+        .nav-brand-logo img { width: 150px; height: 150px; border-radius: 16px; object-fit: cover; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+        .nav-actions { display: flex; align-items: center; gap: 8px; }
+        .nav-reboot { padding: 6px 14px; color: var(--danger); border: 1px solid var(--danger); border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all .2s; background: transparent; white-space: nowrap; }
+        .nav-reboot:hover { background: var(--danger); color: #fff; }
+        .nav-reboot.disabled { opacity: .5; pointer-events: none; }
+        .nav-tabbar { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 16px 10px 16px; flex-wrap: wrap; }
+        .nav-tab { padding: 7px 16px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 20px; transition: all .2s; user-select: none; white-space: nowrap; background: transparent; }
+        .nav-tab:hover { color: var(--accent); background: var(--bg-hover); }
+        .nav-tab.active { color: #fff; background: var(--accent); }
+
+        .panel { display: none; width: 90%; max-width: 900px; }
+        .panel.active { display: block; }
+
+        .card { background: var(--bg-card); padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-light); text-align: center; transition: background .3s; }
+        .card h1 { color: var(--accent); font-size: 32px; margin-bottom: 25px; }
+        .ver-tag { font-size: 12px; font-weight: 600; color: var(--accent-light); background: var(--bg-tag); border: 1px solid var(--accent-border); padding: 2px 10px; border-radius: 12px; vertical-align: middle; margin-left: 6px; letter-spacing: .5px; }
+        .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 10px; }
+        .format-desc { color: var(--text-secondary); font-size: 13px; line-height: 1.8; }
+        .fmt { font-family: "Cascadia Code", "Fira Code", Menlo, monospace; color: var(--accent); font-weight: 600; }
+        .fmt-note { color: var(--text-secondary); font-size: 13px; }
+        .form-group { margin: 20px 0; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
+        select, input[type="file"], button { padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; background: var(--bg-input); color: var(--text-primary); }
+        button.primary { background: var(--accent); color: #fff; border: none; cursor: pointer; }
+        button.primary:disabled { background: #999; cursor: not-allowed; }
+        button.refresh-btn { background: var(--bg-info); color: var(--accent); border: 1px solid var(--accent-border); cursor: pointer; }
+        #device-select { min-width: 350px; font-family: monospace; font-size: 13px; }
+
+        .progress-container { margin-top: 25px; display: none; text-align: left; }
+        .progress-bar-outer { width: 100%; height: 30px; background: var(--bar-bg); border-radius: 15px; overflow: hidden; position: relative; }
+        .progress-bar-inner { height: 100%; background: linear-gradient(90deg, var(--accent), #4a90d9); width: 0%; transition: width .3s; border-radius: 15px; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 13px; font-weight: bold; color: var(--progress-text); }
+        .progress-details { margin-top: 10px; font-family: monospace; font-size: 13px; color: var(--text-secondary); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 5px; }
+
+        #result-area { margin-top: 20px; padding: 15px; border-radius: 4px; display: none; text-align: left; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+        .warning-box { background: #fff9c4; border: 1px solid #ffe082; padding: 20px; border-radius: 4px; text-align: left; margin-top: 30px; }
+        .warning-box ul { padding-left: 20px; color: #555; }
+
+        .fw-download-section { margin-top: 30px; }
+        .fw-download-title { color: var(--accent); font-size: 16px; margin-bottom: 12px; text-align: left; border-bottom: 2px solid var(--border-light); padding-bottom: 6px; }
+        .fw-download-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+        .fw-download-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; transition: all .2s; display: flex; flex-direction: column; gap: 10px; }
+        .fw-download-card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,.1); transform: translateY(-2px); }
+        .fw-card-header { display: flex; align-items: center; gap: 10px; }
+        .fw-card-icon { font-size: 24px; line-height: 1; }
+        .fw-card-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+        .fw-card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+        .fw-card-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .fw-card-link { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; text-decoration: none; background: var(--bg-section); color: var(--accent); border: 1px solid var(--border-light); transition: all .15s; }
+        .fw-card-link:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; margin-left: 10px; }
+        .status-writing { background: #fff3cd; color: #856404; }
+        .status-syncing { background: #d1ecf1; color: #0c5460; }
+        .status-done { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+
+        .term-wrapper { background: #000; padding: 5px 5px 5px 5px; }
+        #terminal-container { width: 100%; height: 72vh; background: #0d1117; overflow: hidden; cursor: text; position: relative; }
+        #terminal-container .xterm { position: relative !important; width: 100% !important; height: 100% !important; }
+        #terminal-container .xterm-viewport { overflow-y: auto !important; }
+        #terminal-container .xterm-viewport::-webkit-scrollbar { width: 10px; }
+        #terminal-container .xterm-viewport::-webkit-scrollbar-track { background: rgba(0,0,0,.15); border-radius: 5px; }
+        #terminal-container .xterm-viewport::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 5px; border: 2px solid rgba(0,0,0,.15); }
+        #terminal-container .xterm-viewport::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.4); }
+        #terminal-container .xterm-viewport { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) rgba(0,0,0,.15); }
+
+        /* ===== Terminal Toolbar ===== */
+        .terminal-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; background: #f8faff; padding: 10px 16px; border-radius: 8px 8px 0 0; border: 1px solid #d4dfee; border-bottom: none; }
+        .term-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #2c5aa0; }
+        .term-title .term-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ada6a; box-shadow: 0 0 6px rgba(74,218,106,.5); }
+        .term-title .term-dot.offline { background: #ccc; box-shadow: none; }
+        .term-actions { display: flex; gap: 6px; align-items: center; }
+        .btn-term {
+            padding: 5px 14px; font-size: 12px; font-weight: 600;
+            border-radius: 4px; cursor: pointer; transition: all .2s; user-select: none;
+            background: #fff; color: #5c7ebf; border: 1px solid #d4dfee;
+        }
+        .btn-term:hover { background: #eef2fa; color: #2c5aa0; border-color: #2c5aa0; }
+        .btn-term-reset { color: #d9534f; border-color: #e8c5c5; }
+        .btn-term-reset:hover { background: #d9534f; color: #fff; border-color: #d9534f; }
+
+        /* ===== Terminal Settings Selectors ===== */
+        .term-select { padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: all .2s; user-select: none; background: #fff; color: #5c7ebf; border: 1px solid #d4dfee; outline: none; }
+        .term-select:hover { background: #eef2fa; border-color: #2c5aa0; }
+        .term-select option { background: #fff; color: #333; }
+        .term-select-label { font-size: 11px; color: #8899bb; margin-right: 2px; user-select: none; }
+
+        /* ===== Terminal Warning ===== */
+        .term-warning { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 10px 16px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; font-size: 13px; color: #8d6e00; }
+        .term-warning-icon { font-size: 15px; }
+        .term-warning strong { color: #d84315; }
+
+        .adv-toggle { text-align: right; margin-top: 10px; }
+        .adv-toggle label { font-size: 14px; color: #555; cursor: pointer; user-select: none; }
+        .adv-toggle input { margin-right: 5px; cursor: pointer; }
+
+        .adv-bottom { display: none; }
+        #flash-panel.advanced { max-width: 100%; width: 95%; }
+        #flash-panel.advanced .adv-layout { display: flex; flex-direction: column; gap: 20px; }
+        #flash-panel.advanced .adv-top { width: 100%; }
+        #flash-panel.advanced .adv-bottom { width: 100%; display: flex; flex-direction: column; }
+
+        .log-panel { display: none; background: #1e1e1e; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.15); overflow: hidden; height: 400px; flex-direction: column; }
+        .log-panel.visible { display: flex; }
+
+        .log-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #2d2d2d; color: #ccc; font-size: 13px; font-weight: bold; }
+        .log-header span { white-space: nowrap; }
+        .log-actions { display: flex; gap: 6px; }
+        .log-actions button { padding: 4px 10px; font-size: 12px; border-radius: 3px; cursor: pointer; border: 1px solid #555; background: #3a3a3a; color: #ddd; transition: all .15s; }
+        .log-actions button:hover { background: #555; }
+        .log-actions .btn-clear { border-color: #d9534f; color: #d9534f; }
+        .log-actions .btn-clear:hover { background: #d9534f; color: #fff; }
+        .log-actions .btn-export { border-color: #5bc0de; color: #5bc0de; }
+        .log-actions .btn-export:hover { background: #5bc0de; color: #fff; }
+
+        .log-body { flex: 1; overflow-y: auto; padding: 8px 12px; font-family: "Cascadia Code", "Fira Code", Menlo, Monaco, monospace; font-size: 12px; line-height: 1.6; color: #d4d4d4; }
+        .log-body::-webkit-scrollbar { width: 6px; }
+        .log-body::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        .log-line { white-space: pre-wrap; word-break: break-all; }
+        .log-line .log-ts { color: #6a9955; margin-right: 6px; }
+        .log-line.log-info { color: #569cd6; }
+        .log-line.log-success { color: #4ec9b0; }
+        .log-line.log-error { color: #f44747; }
+        .log-line.log-warn { color: #dcdcaa; }
+        .log-line.log-data { color: #d4d4d4; }
+
+        #reboot-overlay { display: none; position: fixed; inset: 0; background: var(--bg-overlay); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .nav-about { padding: 6px 14px; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all .2s; background: transparent; white-space: nowrap; }
+        .nav-about:hover { background: var(--accent); color: #fff; }
+
+        .nav-theme { padding: 6px 14px; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all .2s; background: transparent; user-select: none; white-space: nowrap; }
+        .nav-theme:hover { background: var(--accent); color: #fff; }
+
+        #about-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 10000; justify-content: center; align-items: center; }
+        #about-overlay.visible { display: flex; }
+        .about-modal { background: var(--bg-card); border-radius: 10px; box-shadow: 0 8px 32px var(--shadow); max-width: 560px; width: 90%; max-height: 85vh; overflow-y: auto; }
+        .about-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border-faint); }
+        .about-header h2 { color: var(--accent); font-size: 20px; margin: 0; }
+        .about-close { font-size: 28px; color: var(--text-faint); cursor: pointer; line-height: 1; user-select: none; }
+        .about-close:hover { color: var(--text-primary); }
+        .about-body { padding: 20px 24px; }
+        .about-version { margin-bottom: 12px; }
+        .about-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 16px; }
+        .about-section h3 { font-size: 15px; color: var(--accent); margin-bottom: 8px; }
+        .about-section ul { padding-left: 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
+        .about-disclaimer { background: var(--bg-warning); border: 1px solid var(--warning-border); border-radius: 8px; padding: 14px 18px; margin: 16px 0; }
+        .about-disclaimer h3 { color: var(--warning-text); }
+        .about-disclaimer ul { color: var(--warning-text); }
+        .about-footer { text-align: center; padding-top: 12px; border-top: 1px solid var(--border-faint); font-size: 13px; }
+        .about-footer a { color: var(--accent); text-decoration: none; }
+        .about-footer a:hover { text-decoration: underline; }
+
+        .footer { position: fixed; bottom: 0; left: 0; width: 100%; text-align: center; padding: 12px 0; background: var(--bg-footer); border-top: 1px solid var(--border); z-index: 100; }
+        .footer-line { display: inline-flex; align-items: center; gap: 8px; color: var(--text-faint); font-size: 13px; }
+        .footer-line .dot { width: 3px; height: 3px; background: var(--text-faint); border-radius: 50%; }
+        .footer-line a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+        .footer-line a:hover { color: var(--accent); text-decoration: underline; }
+        .footer-line .heart { color: #e25555; font-size: 18px; display: inline-block; animation: heartbeat 1.2s ease-in-out infinite; filter: drop-shadow(0 0 3px rgba(226,85,85,.4)); }
+        @keyframes heartbeat { 0%,100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } 60% { transform: scale(1); } }
+
+        /* ===== Boot Order Panel ===== */
+        .boot-card { background: var(--bg-card); padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-light); transition: background .3s; }
+        .boot-card h1 { color: var(--accent); font-size: 28px; margin-bottom: 8px; }
+        .boot-card .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+        .boot-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .boot-item { display: flex; align-items: center; gap: 16px; padding: 14px 20px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; transition: all .25s ease; box-shadow: 0 1px 3px var(--shadow-light); }
+        .boot-item:hover { border-color: var(--accent-border); box-shadow: 0 2px 8px var(--shadow); }
+        .boot-item.active { border-color: var(--accent); background: var(--accent-bg); box-shadow: 0 2px 12px var(--shadow); }
+        .boot-item.dragging { opacity: .4; border-style: dashed; }
+        .boot-item.drag-over { border-color: var(--accent-light); border-top: 3px solid var(--accent-light); }
+        .boot-rank { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; transition: all .25s; background: var(--bg-info); color: var(--accent-light); }
+        .boot-item.active .boot-rank { background: var(--accent); color: #fff; box-shadow: 0 2px 8px var(--shadow); }
+        .boot-type-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px; flex-shrink: 0; letter-spacing: .3px; }
+        .boot-type-badge .badge-icon { font-size: 14px; }
+        .boot-type-usb .boot-type-badge { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+        .boot-type-nvme .boot-type-badge { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
+        .boot-type-sata .boot-type-badge { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .boot-type-emmc .boot-type-badge { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
+        .boot-type-recovery .boot-type-badge { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+        .boot-type-maskrom .boot-type-badge { background: #fce4ec; color: #c62828; border: 1px solid #f8bbd0; }
+        .boot-item.active .boot-type-badge { border-width: 1px; }
+        .boot-info { flex: 1; text-align: left; min-width: 0; }
+        .boot-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .boot-item.active .boot-label { color: var(--accent); }
+        .boot-devpath { font-size: 11px; color: var(--text-light); font-family: "Cascadia Code", "Fira Code", Menlo, monospace; margin-top: 3px; }
+        .boot-handle { font-size: 16px; color: var(--text-faint); cursor: grab; flex-shrink: 0; user-select: none; padding: 4px 2px; transition: color .15s; }
+        .boot-handle:hover { color: var(--accent); }
+        .boot-handle:active { cursor: grabbing; }
+        .boot-disabled { opacity: .5; }
+        .boot-disabled .boot-rank { background: var(--bar-bg) !important; color: var(--text-faint) !important; }
+        .boot-disabled-tag { font-size: 11px; padding: 1px 8px; border-radius: 8px; background: var(--bg-error); color: var(--danger); font-weight: 600; margin-left: 6px; }
+        .boot-toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; background: var(--bar-bg); cursor: pointer; transition: background .3s; flex-shrink: 0; }
+        .boot-toggle.on { background: var(--success); }
+        .boot-toggle .boot-toggle-knob { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .3s; }
+        .boot-toggle.on .boot-toggle-knob { left: 21px; }
+        .boot-actions { display: flex; gap: 10px; justify-content: center; }
+        .boot-actions button { padding: 10px 24px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all .2s; }
+        .btn-boot-refresh { background: var(--bg-info); color: var(--accent); border: 1px solid var(--accent-border) !important; }
+        .btn-boot-refresh:hover { background: var(--accent); color: #fff; }
+        .btn-boot-save { background: var(--accent); color: #fff; }
+        .btn-boot-save:hover { background: #1a4a80; }
+        .btn-boot-save:disabled { background: #999; cursor: not-allowed; }
+        .btn-boot-reset { background: #6c757d; color: #fff; }
+        .btn-boot-reset:hover { background: #5a6268; }
+        .boot-hint { text-align: center; color: var(--text-faint); font-size: 12px; margin-top: 15px; }
+        .boot-section-title { color: var(--accent); font-size: 16px; margin-bottom: 5px; text-align: left; border-bottom: 2px solid var(--border-light); padding-bottom: 6px; }
+        .boot-vars-table { border: 1px solid var(--border-light); border-radius: 6px; overflow: hidden; max-height: 400px; overflow-y: auto; }
+        .boot-vars-table table { width: 100%; border-collapse: collapse; }
+        .boot-vars-table th { background: var(--bg-section); color: var(--accent); font-size: 13px; padding: 10px 14px; text-align: left; font-weight: 600; position: sticky; top: 0; }
+        .boot-vars-table td { padding: 8px 14px; font-size: 13px; border-top: 1px solid var(--border-light); text-align: left; }
+        .boot-vars-table td:first-child { font-family: "Cascadia Code", "Fira Code", Menlo, monospace; color: var(--accent); font-weight: 600; }
+        .boot-vars-table td:last-child { font-family: "Cascadia Code", "Fira Code", Menlo, monospace; color: var(--text-secondary); word-break: break-all; }
+        .boot-vars-table tr.changed td { background: var(--bg-warning); }
+        .boot-vars-table tr.changed td:first-child::after { content: ' ✏️'; font-size: 11px; }
+        .boot-var-input { width: 100%; padding: 4px 8px; border: 1px solid transparent; border-radius: 3px; font-family: "Cascadia Code", "Fira Code", Menlo, monospace; font-size: 13px; color: #555; background: transparent; transition: all .15s; }
+        .boot-var-input:focus { border-color: #2c5aa0; background: #fff; outline: none; }
+        .boot-var-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: center; }
+        .btn-var-save { padding: 8px 20px; font-size: 13px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; background: #d9534f; color: #fff; transition: all .2s; }
+        .btn-var-save:hover { background: #c9302c; }
+        .btn-var-save:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-var-reset { padding: 8px 20px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; font-weight: 600; background: #fff; color: #666; transition: all .2s; }
+        .btn-var-reset:hover { background: #f5f5f5; }
+        .btn-var-reset:disabled { background: #f5f5f5; color: #ccc; border-color: #eee; cursor: not-allowed; }
+
+        /* ===== Storage Panel ===== */
+        .storage-card { background: var(--bg-card); padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px var(--shadow-light); transition: background .3s; }
+        .storage-card h1 { color: var(--accent); font-size: 28px; margin-bottom: 8px; }
+        .storage-card .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+        .storage-actions { display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; }
+        .btn-storage-refresh { padding: 10px 24px; font-size: 14px; border: 1px solid var(--accent-border); border-radius: 6px; cursor: pointer; font-weight: 600; background: var(--bg-info); color: var(--accent); transition: all .2s; }
+        .btn-storage-refresh:hover { background: var(--accent); color: #fff; }
+        .storage-device { background: var(--bg-hover); border: 1px solid var(--accent-border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+        .storage-device-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+        .storage-device-icon { font-size: 24px; }
+        .storage-device-title { font-size: 18px; font-weight: 700; color: var(--accent); }
+        .storage-device-meta { font-size: 13px; color: var(--text-light); margin-left: auto; display: flex; gap: 15px; }
+        .storage-device-meta span { white-space: nowrap; }
+        .storage-section-title { font-size: 14px; font-weight: 700; color: var(--text-secondary); margin: 15px 0 8px 0; padding-bottom: 5px; border-bottom: 1px solid var(--border-faint); }
+        .storage-part-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .storage-part-table th { background: var(--bg-info); color: var(--accent); padding: 8px 10px; text-align: left; font-weight: 600; }
+        .storage-part-table td { padding: 6px 10px; border-bottom: 1px solid var(--border-faint); }
+        .storage-part-table tr:hover td { background: var(--bg-hover); }
+        .storage-smart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px; }
+        .smart-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; }
+        .smart-item .smart-label { font-size: 11px; color: var(--text-faint); margin-bottom: 2px; }
+        .smart-item .smart-value { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .smart-health-passed { color: var(--success); }
+        .smart-health-failed { color: var(--danger); }
+        .smart-attrs-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .smart-attrs-table th { background: var(--bg-info); color: var(--accent); padding: 6px 10px; text-align: left; font-weight: 600; }
+        .smart-attrs-table td { padding: 4px 10px; border-bottom: 1px solid var(--border-light); }
+        .smart-unavailable { color: var(--text-faint); font-size: 13px; padding: 10px 0; }
+        .storage-loading { text-align: center; color: var(--text-faint); padding: 40px 0; font-size: 15px; }
+        .smart-detail-toggle { display: inline-block; margin: 6px 0 0 0; padding: 4px 14px; font-size: 12px; font-weight: 600; border: 1px solid var(--accent-border); border-radius: 4px; cursor: pointer; background: var(--bg-card); color: var(--accent-light); transition: all .2s; user-select: none; }
+        .smart-detail-toggle:hover { background: var(--bg-info); border-color: var(--accent); color: var(--accent); }
+        .smart-detail { display: none; margin-top: 6px; overflow: hidden; }
+        .smart-detail.visible { display: block; }
+        .part-detail-toggle { display: inline-block; margin: 6px 0 0 0; padding: 4px 14px; font-size: 12px; font-weight: 600; border: 1px solid var(--accent-border); border-radius: 4px; cursor: pointer; background: var(--bg-card); color: var(--accent-light); transition: all .2s; user-select: none; }
+        .part-detail-toggle:hover { background: var(--bg-info); border-color: var(--accent); color: var(--accent); }
+        .part-detail { display: none; }
+        .part-detail.visible { display: block; }
+        .detail-group { margin-top: 4px; }
+
+        .hw-section { margin-bottom: 20px; }
+        .hw-section-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg-section); border-radius: 8px; cursor: pointer; transition: all .2s; user-select: none; }
+        .hw-section-header:hover { background: var(--bg-hover); }
+        .hw-section-icon { font-size: 20px; }
+        .hw-section-title { font-size: 16px; font-weight: 600; color: var(--accent); flex: 1; }
+        .hw-section-hint { font-size: 12px; color: var(--text-faint); }
+        .hw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin: 12px 0; }
+        .hw-item { background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: 6px; padding: 10px 14px; }
+        .hw-item-label { font-size: 11px; color: var(--text-light); margin-bottom: 4px; }
+        .hw-item-value { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .hw-progress { width: 100%; height: 6px; background: var(--bar-bg); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+        .hw-progress .hw-progress-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+        .hw-progress .hw-progress-green { background: linear-gradient(90deg, #28a745, #5cb85c); }
+        .hw-progress .hw-progress-blue { background: linear-gradient(90deg, var(--accent), #5b8fd6); }
+        .hw-progress .hw-progress-orange { background: linear-gradient(90deg, #ffc107, #ff9800); }
+        .hw-progress .hw-progress-red { background: linear-gradient(90deg, var(--danger), #e85a6a); }
+        .net-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        .net-table th { background: var(--accent); color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
+        .net-table td { padding: 6px 12px; border-bottom: 1px solid var(--border-light); }
+        .net-table tr:nth-child(even) td { background: var(--bg-hover); }
+        .net-table tr:hover td { background: var(--bg-info); }
+        .net-status-up { color: var(--success); font-weight: 600; }
+        .net-status-down { color: var(--text-faint); }
+        .smart-attrs-table { width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .smart-attrs-table th { background: var(--accent); color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
+        .smart-attrs-table td { padding: 6px 12px; border-bottom: 1px solid var(--border-light); }
+        .smart-attrs-table tr:nth-child(even) td { background: var(--bg-hover); }
+        .smart-attrs-table tr:hover td { background: var(--bg-info); }
+        /* ===== Update Panel ===== */
+        .update-card { background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+        .update-card h1 { color: #2c5aa0; font-size: 28px; margin-bottom: 8px; }
+        .update-card .subtitle { color: #666; font-size: 14px; margin-bottom: 25px; }
+        .update-section { margin-bottom: 30px; }
+        .update-section-title { font-size: 16px; font-weight: 700; color: #2c5aa0; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #eef2fa; }
+        .update-upload-area { border: 2px dashed var(--accent-border); border-radius: 8px; padding: 30px; text-align: center; transition: all .2s; cursor: pointer; }
+        .update-upload-area:hover { border-color: var(--accent); background: var(--bg-hover); }
+        .update-upload-area.dragover { border-color: var(--accent); background: var(--bg-info); }
+        .update-upload-icon { font-size: 40px; margin-bottom: 10px; }
+        .update-upload-text { font-size: 14px; color: var(--text-muted); margin-bottom: 6px; }
+        .update-upload-hint { font-size: 12px; color: var(--text-faint); }
+        .update-upload-area input[type=file] { display: none; }
+        .update-btn { padding: 10px 24px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all .2s; }
+        .update-btn-check { background: var(--bg-info); color: var(--accent); border: 1px solid var(--accent-border); }
+        .update-btn-check:hover { background: var(--accent); color: #fff; }
+        .update-btn-download { background: var(--success); color: #fff; }
+        .update-btn-download:hover { background: #218838; }
+        .update-btn-download:disabled { background: #ccc; cursor: not-allowed; }
+        .update-btn-download.btn-cancel { background: var(--danger); color: #fff; animation: cancelPulse 2s infinite; }
+        .update-btn-download.btn-cancel:hover { background: #c82333; }
+        @keyframes cancelPulse { 0%,100%{ box-shadow: none; } 50%{ box-shadow: 0 0 8px rgba(220,53,69,.5); } }
+        .update-btn-upload { background: var(--accent); color: #fff; }
+        .update-btn-upload:hover { background: #1a4a80; }
+        .update-btn-upload:disabled { background: #ccc; cursor: not-allowed; }
+        .update-actions { display: flex; gap: 10px; align-items: center; margin-top: 15px; }
+        .update-proxy-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+        .update-proxy-input { flex: 1; padding: 8px 12px; font-size: 13px; border: 1px solid var(--accent-border); border-radius: 6px; outline: none; transition: border-color .2s; background: var(--bg-input); color: var(--text-primary); }
+        .update-proxy-input:focus { border-color: var(--accent); }
+        .update-proxy-label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+        .update-status { margin-top: 15px; padding: 12px 16px; border-radius: 6px; font-size: 13px; display: none; }
+        .update-status.visible { display: block; }
+        .update-status.info { background: #e7f4ff; color: var(--accent); border: 1px solid #b8dbff; }
+        .update-status.success { background: #e8f5e9; color: #1b7d3a; border: 1px solid #a5d6a7; }
+        .update-status.warning { background: var(--bg-warning); color: var(--warning-text); border: 1px solid var(--warning-border); }
+        .update-status.error { background: #fde8e8; color: #c0392b; border: 1px solid #f5b7b7; }
+        .update-version-info { display: flex; gap: 20px; margin-bottom: 15px; font-size: 13px; }
+        .update-version-info .v-label { color: var(--text-faint); }
+        .update-version-info .v-value { font-weight: 600; color: var(--text-primary); }
+        .update-file-info { margin-top: 10px; font-size: 13px; color: var(--text-muted); }
+        .update-progress-bar { width: 100%; height: 6px; background: var(--bg-info); border-radius: 3px; margin-top: 10px; overflow: hidden; display: none; }
+        .update-progress-bar.visible { display: block; }
+        .update-progress-bar .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; width: 0%; }
+        .update-warning-box { background: var(--bg-warning); border: 1px solid var(--warning-border); border-radius: 6px; padding: 10px 16px; font-size: 13px; color: var(--warning-text); margin-bottom: 15px; line-height: 1.6; }
+
+        .update-version-list { margin-top: 12px; }
+        .update-version-list-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+        #update-version-cards { display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; padding: 4px; }
+        .ver-card { padding: 8px 16px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all .2s; background: var(--bg-card); font-size: 13px; user-select: none; display: flex; align-items: center; gap: 8px; }
+        .ver-card:hover { border-color: var(--accent); background: var(--bg-hover); }
+        .ver-card.selected { border-color: var(--accent); background: var(--bg-info); color: var(--accent); font-weight: 600; }
+        .ver-card .ver-tag-sm { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+        .ver-card .ver-latest { background: var(--success); color: #fff; }
+        .ver-card .ver-current { background: var(--accent); color: #fff; }
+
+        .backup-card { background: var(--bg-card); border-radius: 10px; padding: 30px; max-width: 800px; margin: 0 auto; box-shadow: 0 2px 12px var(--shadow); transition: background .3s; }
+        .backup-card h1 { font-size: 22px; color: var(--accent); margin-bottom: 5px; }
+        .backup-card .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+        .backup-disk-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .backup-disk-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all .2s; user-select: none; }
+        .backup-disk-item:hover { border-color: var(--accent); background: var(--bg-hover); }
+        .backup-disk-item.selected { border-color: var(--accent); background: var(--bg-info); }
+        .backup-disk-icon { font-size: 24px; }
+        .backup-disk-info { flex: 1; }
+        .backup-disk-dev { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+        .backup-disk-detail { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+        .backup-disk-type { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--bg-info); color: var(--accent); font-weight: 600; }
+        .backup-section { margin-bottom: 25px; }
+        .backup-section-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-faint); }
+        .backup-actions { display: flex; gap: 10px; align-items: center; margin-top: 15px; }
+        .backup-btn { padding: 10px 22px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all .2s; }
+        .backup-btn:disabled { background: #ccc; cursor: not-allowed; color: #999; }
+        .backup-btn-backup { background: var(--success); color: #fff; }
+        .backup-btn-backup:hover:not(:disabled) { background: #218838; }
+        .backup-btn-backup.btn-cancel { background: var(--danger); animation: cancelPulse 2s infinite; }
+        .backup-btn-backup.btn-cancel:hover { background: #c82333; }
+        .backup-btn-restore { background: var(--accent); color: #fff; }
+        .backup-btn-restore:hover:not(:disabled) { background: #1f4080; }
+        .backup-btn-restore.btn-cancel { background: var(--danger); animation: cancelPulse 2s infinite; }
+        .backup-btn-restore.btn-cancel:hover { background: #c82333; }
+        .backup-status { font-size: 13px; padding: 8px 0; color: var(--text-muted); min-height: 20px; }
+        .backup-progress-bar { width: 100%; height: 8px; background: var(--bar-bg); border-radius: 4px; overflow: hidden; margin-top: 8px; display: none; }
+        .backup-progress-bar.visible { display: block; }
+        .backup-progress-bar .bar-fill { height: 100%; background: linear-gradient(90deg, var(--success), #5cb85c); border-radius: 4px; transition: width .3s; width: 0%; }
+        .backup-restore-upload { padding: 20px; border: 2px dashed var(--border); border-radius: 8px; text-align: center; cursor: pointer; transition: all .2s; margin-bottom: 12px; }
+        .backup-restore-upload:hover { border-color: var(--accent); background: var(--bg-hover); }
+        .backup-restore-upload-icon { font-size: 32px; margin-bottom: 6px; }
+        .backup-restore-upload-text { color: var(--text-muted); font-size: 13px; }
+        .backup-restore-file-info { font-size: 13px; color: var(--accent); margin-bottom: 8px; }
+
+        .fw-card { background: var(--bg-card); border-radius: 10px; padding: 30px; max-width: 900px; margin: 0 auto; box-shadow: 0 2px 12px var(--shadow); transition: background .3s; }
+        .fw-card h1 { font-size: 22px; color: var(--accent); margin-bottom: 5px; }
+        .fw-card .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+        .fw-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .fw-toggle { display: flex; align-items: center; gap: 12px; }
+        .fw-switch { position: relative; width: 50px; height: 26px; border-radius: 13px; background: var(--bar-bg); cursor: pointer; transition: background .3s; }
+        .fw-switch.on { background: var(--success); }
+        .fw-switch .fw-switch-knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .3s; }
+        .fw-switch.on .fw-switch-knob { left: 27px; }
+        .fw-toggle-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .fw-section { margin-bottom: 25px; }
+        .fw-section-title { font-size: 16px; font-weight: 600; color: var(--accent); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border-light); display: flex; align-items: center; gap: 8px; }
+        .fw-add-form { background: var(--bg-hover); border: 1px solid var(--border-light); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .fw-form-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .fw-form-row select, .fw-form-row input { padding: 6px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-input); color: var(--text-primary); }
+        .fw-form-row input { min-width: 100px; }
+        .fw-form-label { font-size: 12px; color: var(--text-light); white-space: nowrap; }
+        .fw-btn-add { padding: 6px 16px; background: var(--accent); color: #fff; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
+        .fw-btn-add:hover { background: #1a4a80; }
+        .fw-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .fw-table th { background: var(--bg-section); color: var(--accent); padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; }
+        .fw-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-light); }
+        .fw-table tr:hover td { background: var(--bg-hover); }
+        .fw-action-ACCEPT { color: var(--success); font-weight: 600; }
+        .fw-action-DROP { color: var(--danger); font-weight: 600; }
+        .fw-action-REJECT { color: var(--danger); font-weight: 600; }
+        .fw-action-DNAT { color: #7b1fa2; font-weight: 600; }
+        .fw-action-SNAT { color: #e65100; font-weight: 600; }
+        .fw-action-MASQUERADE { color: var(--accent); font-weight: 600; }
+        .fw-btn-del { padding: 4px 12px; background: transparent; border: 1px solid var(--danger); color: var(--danger); border-radius: 4px; font-size: 12px; cursor: pointer; transition: all .2s; }
+        .fw-btn-del:hover { background: var(--danger); color: #fff; }
+        .fw-empty { color: var(--text-faint); font-size: 13px; padding: 16px 0; text-align: center; }
+        .fw-policy-badge { font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
+        .fw-policy-ACCEPT { background: #e8f5e9; color: #2e7d32; }
+        .fw-policy-DROP { background: #fde8e8; color: #c62828; }
+        [data-theme="dark"] .fw-policy-ACCEPT { background: #1a3a1a; color: #4caf50; }
+        [data-theme="dark"] .fw-policy-DROP { background: #3d1a1a; color: #ef5350; }
+        [data-theme="dark"] .fw-action-DNAT { color: #ce93d8; }
+        [data-theme="dark"] .fw-action-SNAT { color: #ffcc80; }
+
+        @media (max-width: 768px) {
+            .nav-topbar { padding: 0 10px; height: 46px; }
+            .nav-brand { font-size: 28px; }
+            .nav-tabbar { padding: 0 8px 8px 8px; gap: 3px; }
+            .nav-tab { padding: 6px 12px; font-size: 13px; }
+            .nav-reboot, .nav-about, .nav-theme { padding: 5px 10px; font-size: 12px; }
+            .panel { width: 95%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="reboot-overlay">
+    <div class="spinner"></div>
+    <h2 style="color:var(--accent);">系统正在重启...</h2>
+    <p id="reboot-status" style="color:var(--text-muted);margin-top:10px;">正在等待设备离线</p>
+</div>
+
+<div id="about-overlay" onclick="if(event.target===this)hideAbout()">
+    <div class="about-modal">
+        <div class="about-header">
+            <span class="about-close" onclick="hideAbout()">&times;</span>
+        </div>
+        <div class="about-body">
+            <div style="text-align:center;margin-bottom:16px;">
+                <img src="/res/logo.png" alt="RKdev" style="width:150px;height:150px;border-radius:20px;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,.2);">
+            </div>
+            <h2 style="text-align:center;color:var(--accent);font-size:20px;margin:0 0 6px 0;">瑞芯微固件更新助手</h2>
+            <p style="text-align:center;color:var(--text-muted);font-size:14px;margin:0 0 4px 0;">彼度云 G98/Z98 固件更新助手</p>
+            <p style="text-align:center;font-size:13px;margin:0 0 4px 0;color:var(--text-muted);">英文名称：<span style="color:var(--accent);font-weight:700;">RKdev (Rockchip Kernel Developer)</span></p>
+            <p class="about-alias" style="text-align:center;font-size:13px;margin:0 0 10px 0;color:var(--text-muted);">项目别称：<span style="color:var(--accent);font-weight:700;">吊炸天刷机工具</span> 😎</p>
+            <p class="about-version">版本: <span class="ver-tag">v{{.BuildTime}}</span></p>
+            <p class="about-desc">本项目为瑞芯微 RK3588 平台（彼度云 G98/Z98）设备的固件刷写与维护工具，提供固件刷写、引导顺序配置、存储健康检测、终端访问及在线更新等功能。</p>
+            <div class="about-section">
+                <h3>📋 功能说明</h3>
+                <ul>
+                    <li>⚡ 固件刷写 — 支持上传固件镜像刷写到设备存储</li>
+                    <li>🔀 引导顺序 — 配置 U-Boot bootcmd 启动顺序</li>
+                    <li>💾 存储检测 — 调用 smartctl/sgdisk 检测存储设备健康状态</li>
+                    <li>📦 更新助手 — 通过 GitHub 在线更新 SPI Recovery 镜像</li>
+                    <li>💻 终端 — 远程 Web Shell 访问设备命令行</li>
+                </ul>
+            </div>
+            <div class="about-disclaimer">
+                <h3>⚠️ 免责声明</h3>
+                <ul>
+                    <li><strong>按原样提供</strong>：本工具不作任何明示或暗示的保证，使用风险由用户自行承担。</li>
+                    <li><strong>无官方关联</strong>：本项目与 Rockchip、彼度云等任何商业实体无关，为非盈利自由分享。</li>
+                    <li><strong>操作风险</strong>：刷写固件、修改引导配置、写入 SPI Flash 等操作可能导致设备变砖或数据丢失，请确保了解风险后再操作。</li>
+                    <li><strong>安全提示</strong>：部署后请及时更新安全补丁、修改默认密码、配置防火墙及访问控制策略。</li>
+                </ul>
+            </div>
+            <div class="about-footer">
+                <a href="https://github.com/yifengyou" target="_blank">GitHub: yifengyou</a>
+                <span> | </span>
+                <a href="https://github.com/yifengyou/BDY_G98_RK3588" target="_blank">项目仓库</a>
+                <span> | </span>
+                <a href="https://github.com/yifengyou/BDY_G98_RK3588/issues/new" target="_blank" rel="noopener">🐛 Bug 反馈</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="navbar">
+    <div class="nav-topbar">
+        <div class="nav-brand" id="nav-brand">RKdev
+            <div class="nav-brand-logo" id="nav-brand-logo"><img src="/res/logo.png" alt="RKdev Logo"></div>
+        </div>
+        <div class="nav-actions">
+            <div class="nav-theme" id="nav-theme-btn" onclick="toggleTheme()">🌙 暗色</div>
+            <div class="nav-about" onclick="showAbout()">ℹ️ 关于</div>
+            <div class="nav-reboot" id="nav-reboot-btn" onclick="triggerReboot(event)">🔄 重启系统</div>
+        </div>
+    </div>
+    <div class="nav-tabbar">
+        <div class="nav-tab active" data-panel="flash-panel" onclick="switchTab(this)">⚡ 固件刷写</div>
+        <div class="nav-tab" data-panel="boot-panel" onclick="switchTab(this)">🔀 引导顺序</div>
+        <div class="nav-tab" data-panel="storage-panel" onclick="switchTab(this)">🔌 硬件检测</div>
+        <div class="nav-tab" data-panel="update-panel" onclick="switchTab(this)">📦 更新助手</div>
+        <div class="nav-tab" data-panel="backup-panel" onclick="switchTab(this)">💿 备份还原</div>
+        <div class="nav-tab" data-panel="firewall-panel" onclick="switchTab(this)">🛡️ 防火墙</div>
+        <div class="nav-tab" data-panel="terminal-panel" onclick="switchTab(this)">💻 终端</div>
+    </div>
+</div>
+
+<div id="flash-panel" class="panel active">
+    <div class="adv-layout">
+        <div class="adv-top">
+            <div class="card">
+                <h1>彼度云G98/Z98固件更新助手 <span class="ver-tag">v{{.BuildTime}}</span></h1>
+                <p class="subtitle">选择目标存储设备，上传固件文件即可一键刷写</p>
+                <p class="format-desc">支持 <span class="fmt">.img / .bin</span> 单文件固件，支持常见压缩文件，支持多分区打包固件<span class="fmt-note">（自动解压并解析分区表）</span>。</p>
+
+                <div class="form-group">
+                    <label for="device-select"><strong>目标设备:</strong></label>
+                    <select id="device-select"><option value="">-- 请点击刷新加载设备 --</option></select>
+                    <button type="button" class="refresh-btn" onclick="loadDevices()">🔄 刷新</button>
+                </div>
+
+                <form id="upload-form" class="form-group" onsubmit="handleUpload(event)">
+                    <input type="file" name="firmware" id="firmware-file" accept=".img,.bin,.gz,.rar,.bz2,.bz" required>
+                    <button type="submit" class="primary" id="btn-flash">⚡ 开始刷写</button>
+                </form>
+
+                <div class="progress-container" id="progress-container">
+                    <div style="margin-bottom:8px;font-weight:bold;">刷写进度 <span class="status-badge" id="status-badge"></span></div>
+                    <div class="progress-bar-outer">
+                        <div class="progress-bar-inner" id="progress-bar"></div>
+                        <div class="progress-text" id="progress-percent">0%</div>
+                    </div>
+                    <div class="progress-details">
+                        <span id="progress-written">已写入: 0 B</span>
+                        <span id="progress-total">总大小: 0 B</span>
+                        <span id="progress-speed">速度: -- MB/s</span>
+                    </div>
+                </div>
+
+                <div id="result-area"></div>
+
+                <div class="warning-box">
+                    <h3>⚠️ 高危操作注意</h3>
+                    <ul>
+                        <li><strong>过滤规则</strong>：仅显示 U盘、SATA盘、M2 NVME 设备。</li>
+                        <li><strong>文件类型</strong>：支持 .img / .bin 单文件固件，支持常见压缩文件，支持多分区固件。</li>
+                        <li><strong>数据丢失风险</strong>：刷写操作将覆盖目标设备上的所有数据！</li>
+                        <li><strong>写入方式</strong>：文件暂存至 /tmp/，以 4MB 块逐块写入 (等效 dd bs=4M oflag=sync)。</li>
+                    </ul>
+                </div>
+                <div class="adv-toggle">
+                    <label><input type="checkbox" id="adv-mode-check" onchange="toggleAdvancedMode()"> 日志详情</label>
+                </div>
+
+                <div class="fw-download-section">
+                    <h2 class="fw-download-title">📥 固件下载</h2>
+                    <div class="fw-download-grid" id="fw-download-grid"></div>
+                </div>
+            </div>
+        </div>
+        <div class="adv-bottom">
+            <div class="log-panel" id="log-panel">
+                <div class="log-header">
+                    <span id="log-count">日志 (0/10000)</span>
+                    <div class="log-actions">
+                        <button type="button" class="btn-export" onclick="exportLog()">📥 导出</button>
+                        <button type="button" class="btn-clear" onclick="clearLog()">🗑 清空</button>
+                    </div>
+                </div>
+                <div class="log-body" id="log-body"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="terminal-panel" class="panel">
+    <div class="terminal-toolbar">
+        <div class="term-title">
+            <span class="term-dot" id="term-status-dot"></span>
+            <span>Remote Shell</span>
+        </div>
+        <div class="term-actions">
+            <span class="term-select-label">字号</span>
+            <select class="term-select" id="term-fontsize" onchange="changeTermFontSize(this.value)">
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14" selected>14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
+                <option value="19">19</option>
+                <option value="20">20</option>
+                <option value="22">22</option>
+                <option value="24">24</option>
+                <option value="26">26</option>
+                <option value="28">28</option>
+                <option value="30">30</option>
+            </select>
+            <span class="term-select-label">主题</span>
+            <select class="term-select" id="term-theme" onchange="changeTermTheme(this.value)">
+                <option value="github_dark" selected>GitHub Dark</option>
+                <option value="tokyo_night">Tokyo Night</option>
+                <option value="dracula">Dracula</option>
+                <option value="monokai">Monokai</option>
+                <option value="github_dark">GitHub Dark</option>
+                <option value="github_light">GitHub Light</option>
+                <option value="solarized_dark">Solarized Dark</option>
+                <option value="solarized_light">Solarized Light</option>
+            </select>
+            <button type="button" class="btn-term" onclick="exportTermLog()">📥 导出日志</button>
+            <button type="button" class="btn-term btn-term-reset" onclick="resetTerminal()">✨ 复位</button>
+        </div>
+    </div>
+    <div class="term-wrapper">
+        <div id="terminal-container"></div>
+    </div>
+    <div class="term-warning">
+        <span class="term-warning-icon">⚠️</span>
+        <span>终端直接操作设备系统，误操作可能导致<strong>数据丢失</strong>或<strong>系统崩溃</strong>，请谨慎执行每条命令。</span>
+    </div>
+</div>
+
+<div id="boot-panel" class="panel">
+    <div class="boot-card">
+        <h1>引导顺序设置</h1>
+        <p class="subtitle">通过配置 U-Boot bootcmd 变量调整启动顺序，保存后重启生效。</p>
+
+        <h2 class="boot-section-title">引导顺序配置</h2>
+        <p class="boot-hint" style="text-align:left;margin-bottom:12px;">拖拽调整引导顺序，排第一项为默认启动设备。保存后将写入 bootcmd 环境变量。</p>
+        <div class="boot-list" id="boot-list">
+            <div style="text-align:center;color:#aaa;padding:30px 0;">点击下方刷新按钮获取当前启动顺序</div>
+        </div>
+        <div class="boot-actions">
+            <button type="button" class="btn-boot-refresh" onclick="loadBootOrder()">🔄 刷新</button>
+            <button type="button" class="btn-boot-save" id="btn-boot-save" onclick="saveBootOrder()" disabled>💾 保存顺序</button>
+            <button type="button" class="btn-boot-reset" onclick="resetUbootDefaults()">🔧 恢复出厂变量</button>
+        </div>
+
+        <h2 class="boot-section-title" style="margin-top:35px;">U-Boot 环境变量</h2>
+        <p class="boot-hint" style="text-align:left;margin-bottom:12px;">直接编辑变量值后点击「保存修改」写入 U-Boot 环境。修改环境变量有风险，请确保了解含义后再保存。</p>
+        <div class="boot-vars-table">
+            <table id="boot-vars-table">
+                <thead>
+                    <tr><th style="width:25%;">变量名</th><th>变量值</th></tr>
+                </thead>
+                <tbody id="boot-vars-body">
+                    <tr><td colspan="2" style="text-align:center;color:#aaa;padding:20px 0;">点击刷新按钮加载环境变量</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="boot-var-actions">
+            <button type="button" class="btn-var-reset" id="btn-var-reset" onclick="resetBootVars()" disabled>↩️ 还原修改</button>
+            <button type="button" class="btn-var-save" id="btn-var-save" onclick="saveBootVars()" disabled>⚠️ 保存修改</button>
+        </div>
+    </div>
+</div>
+
+<div id="storage-panel" class="panel">
+    <div class="storage-card">
+        <h1>硬件检测</h1>
+        <p class="subtitle">检测系统 CPU、内存、网络接口与存储设备的健康状态。</p>
+        <div class="storage-actions">
+            <button type="button" class="btn-storage-refresh" onclick="loadHardwareAll()">🔄 全部刷新</button>
+            <button type="button" class="btn-storage-export" id="btn-storage-export" onclick="exportStorageReport()" disabled>📥 导出报告</button>
+        </div>
+
+        <div class="hw-section">
+            <div class="hw-section-header" onclick="loadCpuInfo()">
+                <span class="hw-section-icon">🖥️</span>
+                <span class="hw-section-title">CPU & 内存</span>
+                <span class="hw-section-hint">点击刷新</span>
+            </div>
+            <div id="cpu-content">
+                <div class="storage-loading">点击标题刷新 CPU 与内存信息</div>
+            </div>
+        </div>
+
+        <div class="hw-section">
+            <div class="hw-section-header" onclick="loadNetworkInfo()">
+                <span class="hw-section-icon">🌐</span>
+                <span class="hw-section-title">网络接口</span>
+                <span class="hw-section-hint">点击刷新</span>
+            </div>
+            <div id="network-content">
+                <div class="storage-loading">点击标题刷新网络接口信息</div>
+            </div>
+        </div>
+
+        <div class="hw-section">
+            <div class="hw-section-header" onclick="loadStorageInfo()">
+                <span class="hw-section-icon">💾</span>
+                <span class="hw-section-title">存储设备</span>
+                <span class="hw-section-hint">点击刷新</span>
+            </div>
+            <div id="storage-content">
+                <div class="storage-loading">点击标题刷新存储设备信息</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="backup-panel" class="panel">
+    <div class="backup-card">
+        <h1>备份还原</h1>
+        <p class="subtitle">全盘备份/还原磁盘镜像，使用 gzip 实时压缩，支持边下载边备份、边上传边还原。</p>
+
+        <div class="backup-section">
+            <div class="backup-section-title">💿 全盘备份</div>
+            <p style="font-size:13px;color:#666;margin-bottom:12px;">选择磁盘后点击备份，浏览器将下载 gzip 压缩的磁盘镜像。整个过程边读边压缩边下载，不占用设备内存。</p>
+            <div class="update-warning-box">⚠️ <strong>备份大磁盘可能耗时较长，请确保网络稳定。</strong>备份过程中请勿关闭浏览器或断开设备电源。</div>
+            <div class="backup-disk-list" id="backup-disk-list">
+                <div style="color:#888;font-size:13px;padding:8px;">点击「🔄 刷新磁盘列表」加载可用磁盘</div>
+            </div>
+            <div class="backup-actions">
+                <button type="button" class="backup-btn" style="background:#6c757d;color:#fff;" onclick="loadBackupDisks()">🔄 刷新磁盘列表</button>
+                <button type="button" class="backup-btn backup-btn-backup" id="btn-backup" onclick="startBackup()" disabled>⬇️ 备份磁盘</button>
+            </div>
+            <div class="backup-status" id="backup-status"></div>
+            <div class="backup-progress-bar" id="backup-progress-bar"><div class="bar-fill" id="backup-bar-fill"></div></div>
+        </div>
+
+        <div class="backup-section">
+            <div class="backup-section-title">📤 全盘还原</div>
+            <p style="font-size:13px;color:#666;margin-bottom:12px;">选择之前备份的 .img.gz 压缩镜像和目标磁盘，上传后边解压边写入。整个过程不占用设备内存。</p>
+            <div class="update-warning-box">⚠️ <strong>还原操作会覆盖目标磁盘上的所有数据！</strong>请仔细确认目标磁盘，误操作将导致数据永久丢失。</div>
+            <div class="backup-restore-upload" id="restore-upload-area" onclick="document.getElementById('restore-file-input').click()">
+                <div class="backup-restore-upload-icon">📦</div>
+                <div class="backup-restore-upload-text">点击选择 .img.gz 备份文件</div>
+                <input type="file" id="restore-file-input" accept=".gz,.img.gz" style="display:none" onchange="onRestoreFileSelected(this)">
+            </div>
+            <div class="backup-restore-file-info" id="restore-file-info"></div>
+            <div class="backup-disk-list" id="restore-disk-list">
+                <div style="color:#888;font-size:13px;padding:8px;">点击「🔄 刷新磁盘列表」加载可用磁盘</div>
+            </div>
+            <div class="backup-actions">
+                <button type="button" class="backup-btn" style="background:#6c757d;color:#fff;" onclick="loadRestoreDisks()">🔄 刷新磁盘列表</button>
+                <button type="button" class="backup-btn backup-btn-restore" id="btn-restore" onclick="startRestore()" disabled>⬆️ 还原磁盘</button>
+            </div>
+            <div class="backup-status" id="restore-status"></div>
+            <div class="backup-progress-bar" id="restore-progress-bar"><div class="bar-fill" id="restore-bar-fill" style="background:linear-gradient(90deg,#2c5aa0,#5b8fd6);"></div></div>
+        </div>
+    </div>
+</div>
+
+<div id="firewall-panel" class="panel">
+    <div class="fw-card">
+        <h1>🛡️ 防火墙</h1>
+        <p class="subtitle">基于 iptables 的网络访问控制，支持入站规则、转发规则和端口转发（DNAT）。规则存储在自定义链 RKDEV_* 中，不影响系统原有规则。</p>
+
+        <div class="fw-header">
+            <div class="fw-toggle">
+                <div class="fw-switch" id="fw-switch" onclick="toggleFirewall()">
+                    <div class="fw-switch-knob"></div>
+                </div>
+                <span class="fw-toggle-label" id="fw-toggle-label">已禁用</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <span class="fw-policy-badge" id="fw-input-policy">INPUT: -</span>
+                <span class="fw-policy-badge" id="fw-forward-policy">FORWARD: -</span>
+                <button type="button" class="btn-storage-refresh" onclick="loadFirewallStatus()">🔄 刷新</button>
+            </div>
+        </div>
+
+        <div class="update-warning-box">⚠️ <strong>防火墙规则即时生效，配置不当可能导致设备无法访问。</strong>如被锁出，可通过物理终端或串口连接设备执行 <code style="background:var(--bg-code);padding:2px 6px;border-radius:3px;color:#e6edf3;">iptables -F RKDEV_INPUT</code> 清除规则。</div>
+
+        <div class="fw-section">
+            <div class="fw-section-title">📥 入站规则 (INPUT)</div>
+            <div class="fw-add-form">
+                <div class="fw-form-row">
+                    <span class="fw-form-label">动作</span>
+                    <select id="fw-input-action">
+                        <option value="ACCEPT">允许 (ACCEPT)</option>
+                        <option value="DROP">丢弃 (DROP)</option>
+                        <option value="REJECT">拒绝 (REJECT)</option>
+                    </select>
+                    <span class="fw-form-label">协议</span>
+                    <select id="fw-input-proto">
+                        <option value="all">全部</option>
+                        <option value="tcp">TCP</option>
+                        <option value="udp">UDP</option>
+                        <option value="icmp">ICMP</option>
+                    </select>
+                    <span class="fw-form-label">源IP</span>
+                    <input type="text" id="fw-input-srcip" placeholder="如 192.168.1.0/24" style="width:140px;">
+                    <span class="fw-form-label">目标端口</span>
+                    <input type="text" id="fw-input-dport" placeholder="如 80 或 80:443" style="width:100px;">
+                    <button type="button" class="fw-btn-add" onclick="addFirewallRule('input')">＋ 添加</button>
+                </div>
+            </div>
+            <div id="fw-input-rules"></div>
+        </div>
+
+        <div class="fw-section">
+            <div class="fw-section-title">🔀 转发规则 (FORWARD)</div>
+            <div class="fw-add-form">
+                <div class="fw-form-row">
+                    <span class="fw-form-label">动作</span>
+                    <select id="fw-fwd-action">
+                        <option value="ACCEPT">允许 (ACCEPT)</option>
+                        <option value="DROP">丢弃 (DROP)</option>
+                        <option value="REJECT">拒绝 (REJECT)</option>
+                    </select>
+                    <span class="fw-form-label">协议</span>
+                    <select id="fw-fwd-proto">
+                        <option value="all">全部</option>
+                        <option value="tcp">TCP</option>
+                        <option value="udp">UDP</option>
+                    </select>
+                    <span class="fw-form-label">源IP</span>
+                    <input type="text" id="fw-fwd-srcip" placeholder="如 192.168.1.0/24" style="width:140px;">
+                    <span class="fw-form-label">目标IP</span>
+                    <input type="text" id="fw-fwd-dstip" placeholder="如 10.0.0.1" style="width:140px;">
+                    <span class="fw-form-label">目标端口</span>
+                    <input type="text" id="fw-fwd-dport" placeholder="如 80" style="width:100px;">
+                    <button type="button" class="fw-btn-add" onclick="addFirewallRule('forward')">＋ 添加</button>
+                </div>
+            </div>
+            <div id="fw-forward-rules"></div>
+        </div>
+
+        <div class="fw-section">
+            <div class="fw-section-title">📡 端口转发 (DNAT / SNAT)</div>
+            <div class="fw-add-form">
+                <div class="fw-form-row">
+                    <span class="fw-form-label">类型</span>
+                    <select id="fw-nat-action" onchange="onNatTypeChange()">
+                        <option value="dnat">端口转发 (DNAT)</option>
+                        <option value="masquerade">IP伪装 (MASQUERADE)</option>
+                    </select>
+                    <span class="fw-form-label" id="fw-nat-proto-label">协议</span>
+                    <select id="fw-nat-proto">
+                        <option value="tcp">TCP</option>
+                        <option value="udp">UDP</option>
+                    </select>
+                    <span class="fw-form-label" id="fw-nat-dport-label">外部端口</span>
+                    <input type="text" id="fw-nat-dport" placeholder="如 8080" style="width:100px;">
+                    <span class="fw-form-label" id="fw-nat-target-label">目标地址</span>
+                    <input type="text" id="fw-nat-target" placeholder="如 192.168.1.100:80" style="width:160px;">
+                    <button type="button" class="fw-btn-add" onclick="addFirewallRule('nat')">＋ 添加</button>
+                </div>
+            </div>
+            <div id="fw-nat-rules"></div>
+        </div>
+    </div>
+</div>
+
+<div id="update-panel" class="panel">
+    <div class="update-card">
+        <h1>更新助手</h1>
+        <p class="subtitle">通过上传镜像或网络下载更新刷机助手程序。支持 .img 格式镜像文件。</p>
+
+        <div class="update-version-info">
+            <div><span class="v-label">当前版本:</span> <span class="v-value">v{{.BuildTime}}</span></div>
+            <div><span class="v-label">下载源:</span> <span class="v-value"><a href="https://github.com/yifengyou/BDY_G98_RK3588/releases/tag/spi_recovery_uboot2026" target="_blank" style="color:#2c5aa0;text-decoration:none;">https://github.com/yifengyou/BDY_G98_RK3588/releases/tag/spi_recovery_uboot2026</a></span></div>
+        </div>
+
+        <div class="update-section">
+            <div class="update-section-title">🌐 网络更新</div>
+            <p style="font-size:13px;color:#666;margin-bottom:12px;">检测 GitHub 仓库是否有新版本，检测到更新后可一键下载并写入 SPI Flash。</p>
+            <div class="update-warning-box">⚠️ <strong>更新写入 SPI Flash 为同步操作，整个过程可能耗时 5-10 分钟。</strong>更新期间请勿关闭浏览器、断开电源或重启设备，否则可能导致设备无法启动。更新成功后引导顺序将自动还原为出厂默认值，请更新完成后前往「<strong>引导顺序</strong>」页面检查并按需调整。</div>
+            <div class="update-proxy-row">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#666;white-space:nowrap;cursor:pointer;user-select:none;">
+                    <input type="checkbox" id="update-proxy-enable" onchange="onProxyToggle()">
+                    <span>启用下载代理</span>
+                </label>
+                <input type="text" class="update-proxy-input" id="update-proxy" placeholder="选择预设代理或自行输入，如 https://gh-proxy.com/" list="proxy-list" value="" disabled>
+                <datalist id="proxy-list">
+                    <option value="https://gh-proxy.com/">
+                    <option value="https://ghfast.top/">
+                    <option value="https://ghproxy.net/">
+                    <option value="https://fastgit.cc/">
+                </datalist>
+            </div>
+            <div class="update-actions">
+                <button type="button" class="update-btn update-btn-check" onclick="checkUpdate()">🔍 检测更新</button>
+                <button type="button" class="update-btn update-btn-download" id="btn-update-download" onclick="downloadUpdate()" disabled>⬇️ 下载并安装</button>
+            </div>
+            <div class="update-status" id="update-net-status"></div>
+            <div class="update-version-list" id="update-version-list" style="display:none;">
+                <div class="update-version-list-title">📋 可用版本（点击选择要安装的版本）</div>
+                <div id="update-version-cards"></div>
+            </div>
+            <div class="update-progress-bar" id="update-progress-bar"><div class="bar-fill" id="update-bar-fill"></div></div>
+        </div>
+
+        <div class="update-section">
+            <div class="update-section-title">📤 上传更新</div>
+            <p style="font-size:13px;color:#666;margin-bottom:12px;">上传本地 .img 镜像文件来更新刷机助手。</p>
+            <div class="update-warning-box">⚠️ <strong>更新写入 SPI Flash 为同步操作，整个过程可能耗时 5-10 分钟。</strong>更新期间请勿关闭浏览器、断开电源或重启设备，否则可能导致设备无法启动。更新成功后引导顺序将自动还原为出厂默认值，请更新完成后前往「<strong>引导顺序</strong>」页面检查并按需调整。</div>
+            <div class="update-upload-area" id="update-upload-area" onclick="document.getElementById('update-file-input').click()">
+                <div class="update-upload-icon">📦</div>
+                <div class="update-upload-text">点击选择文件或拖拽文件到此区域</div>
+                <div class="update-upload-hint">支持 .img 格式镜像文件</div>
+                <input type="file" id="update-file-input" accept=".img,.bin,.gz" onchange="onUpdateFileSelected(this)">
+            </div>
+            <div class="update-file-info" id="update-file-info"></div>
+            <div class="update-actions">
+                <button type="button" class="update-btn update-btn-upload" id="btn-update-upload" onclick="uploadUpdate()" disabled>⬆️ 上传并更新</button>
+            </div>
+            <div class="update-status" id="update-upload-status"></div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="footer-line">
+        <span>Copyright &copy; 2026</span>
+        <span class="dot"></span>
+        <a href="https://github.com/yifengyou" target="_blank">github/yifengyou</a>
+        <span class="dot"></span>
+        <a href="https://github.com/yifengyou/BDY_G98_RK3588/issues/new" target="_blank" rel="noopener" title="提交 Bug 反馈">🐛 Bug 反馈</a>
+        <span class="dot"></span>
+        <span>Built with <span class="heart">&#9829;</span></span>
+        <span class="dot"></span>
+        <span class="ver-tag">v{{.BuildTime}}</span>
+    </div>
+</div>
+
+<script>
+    // ==================== Tab Switching ====================
+    let termInstance = null;
+    let termFitAddon = null;
+    let termWs = null;
+    let termInitialized = false;
+
+    // ==================== Theme ====================
+    function toggleTheme() {
+        var current = document.documentElement.getAttribute('data-theme');
+        if (current === 'dark') {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+            document.getElementById('nav-theme-btn').textContent = '🌙 暗色';
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+            document.getElementById('nav-theme-btn').textContent = '☀️ 亮色';
+        }
+    }
+
+    (function() {
+        var saved = localStorage.getItem('theme');
+        if (saved === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            var btn = document.getElementById('nav-theme-btn');
+            if (btn) btn.textContent = '☀️ 亮色';
+        }
+    })();
+
+    function switchTab(el) {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById(el.dataset.panel).classList.add('active');
+
+        if (el.dataset.panel === 'terminal-panel') {
+            if (!termInitialized) {
+                initTerminal();                       // 首次：完整初始化
+            } else {
+                // 非首次：重算尺寸 + 断了就重连
+                setTimeout(() => {
+                    if (termFitAddon) termFitAddon.fit();
+                    sendResize();
+                }, 50);
+                if (!termWs || termWs.readyState !== WebSocket.OPEN) {
+                    reconnectTerminal();
+                }
+            }
+        }
+    }
+
+    // ==================== Firmware Download List ====================
+    const fwDownloadData = [
+        {
+            icon: '/res/logo-fnnas.png',
+            name: '飞牛OS',
+            desc: '基于 Debian 的国产 NAS 系统，支持 Docker 容器与虚拟机',
+            links: [
+                { label: '固件下载', url: 'https://www.fnnas.com/download/' },
+                { label: '官网', url: 'https://www.fnnas.com/' },
+            ]
+        },
+        {
+            icon: '/res/logo-armbian.png',
+            name: 'Armbian',
+            desc: '专为 ARM 开发板打造的轻量级 Linux，基于 Debian 深度优化',
+            links: [
+                { label: '固件下载', url: 'https://www.armbian.com/download/' },
+                { label: '官网', url: 'https://www.armbian.com/' },
+            ]
+        },
+        {
+            icon: '/res/logo-openwrt.png',
+            name: 'OpenWrt',
+            desc: '开源路由器固件系统，支持丰富的软件包生态与高度可定制',
+            links: [
+                { label: '固件下载', url: 'https://firmware-selector.openwrt.org/' },
+                { label: '官网', url: 'https://openwrt.org/' },
+            ]
+        },
+        {
+            icon: '/res/logo-qwrt.png',
+            name: 'QWRT',
+            desc: '基于 OpenWrt 深度定制的路由器固件，由酷熊团队维护',
+            links: [
+                { label: '固件下载', url: 'https://www.koolcenter.com/' },
+                { label: '官网', url: 'https://www.koolcenter.com/' },
+            ]
+        },
+        {
+            icon: '/res/logo-immortalwrt.png',
+            name: 'ImmortalWrt',
+            desc: '基于 OpenWrt 的国内定制分支，本地化体验更加完善',
+            links: [
+                { label: '固件下载', url: 'https://firmware-selector.immortalwrt.org/' },
+                { label: '官网', url: 'https://immortalwrt.org/' },
+            ]
+        },
+        {
+            icon: '/res/logo-lede.png',
+            name: 'LEDE',
+            desc: 'OpenWrt 的社区分支项目，后已正式合并回 OpenWrt',
+            links: [
+                { label: '固件下载', url: 'https://lede-project.org/downloads' },
+                { label: '官网', url: 'https://lede-project.org/' },
+            ]
+        },
+        {
+            icon: '/res/logo-istoreos.png',
+            name: 'iStoreOS',
+            desc: '基于 OpenWrt 的软路由/NAS 系统，开箱即用体验友好',
+            links: [
+                { label: '固件下载', url: 'https://fw.istoreos.com/' },
+                { label: '官网', url: 'https://www.istoreos.com/' },
+            ]
+        },
+        {
+            icon: '/res/logo-android.svg',
+            name: 'Android',
+            desc: 'Google 开源移动操作系统，广泛适配各类 RK3588 平台',
+            links: [
+                { label: '固件下载', url: 'https://www.rockchip.fr/Android%2012.html' },
+                { label: '官网', url: 'https://www.android.com/' },
+            ]
+        },
+        {
+            icon: '/res/logo-ubuntu.png',
+            name: 'Ubuntu',
+            desc: '基于 Debian 的流行 Linux 发行版，适合桌面与服务器场景',
+            links: [
+                { label: '固件下载', url: 'https://cdimage.ubuntu.com/releases/' },
+                { label: '官网', url: 'https://ubuntu.com/' },
+            ]
+        },
+        {
+            icon: '/res/logo-debian.svg',
+            name: 'Debian',
+            desc: '完全由社区维护的经典 Linux 发行版，是 Ubuntu 的上游',
+            links: [
+                { label: '固件下载', url: 'https://www.debian.org/distrib/' },
+                { label: '官网', url: 'https://www.debian.org/' },
+            ]
+        },
+        {
+            icon: '/res/logo-centos.png',
+            name: 'CentOS',
+            desc: '基于 RHEL 源码构建的企业级 Linux 发行版，稳定可靠',
+            links: [
+                { label: '固件下载', url: 'https://www.centos.org/download/' },
+                { label: '官网', url: 'https://www.centos.org/' },
+            ]
+        },
+        {
+            icon: '/res/logo-fedora.ico',
+            name: 'Fedora',
+            desc: '由 Red Hat 赞助的前沿 Linux 发行版，技术更新激进',
+            links: [
+                { label: '固件下载', url: 'https://fedoraproject.org/server/download' },
+                { label: '官网', url: 'https://fedoraproject.org/' },
+            ]
+        },
+        {
+            icon: '/res/logo-openeuler.png',
+            name: 'openEuler',
+            desc: '华为开源的企业级 Linux 发行版，面向数字基础设施平台',
+            links: [
+                { label: '固件下载', url: 'https://www.openeuler.org/zh/download/' },
+                { label: '官网', url: 'https://www.openeuler.org/' },
+            ]
+        },
+        {
+            icon: '/res/logo-opencloudos.png',
+            name: 'OpenCloudOS',
+            desc: '腾讯开源的云原生操作系统，完全开源免费且社区驱动',
+            links: [
+                { label: '固件下载', url: 'https://www.opencloudos.org/download' },
+                { label: '官网', url: 'https://www.opencloudos.org/' },
+            ]
+        },
+        {
+            icon: '/res/logo-openanolis.png',
+            name: 'OpenAnolis',
+            desc: '阿里开源的 Linux 发行版，定位为 CentOS 的平滑替代',
+            links: [
+                { label: '固件下载', url: 'https://openanolis.cn/download' },
+                { label: '官网', url: 'https://openanolis.cn/' },
+            ]
+        },
+    ];
+
+    function renderFwDownloads() {
+        const grid = document.getElementById('fw-download-grid');
+        if (!grid) return;
+        grid.innerHTML = fwDownloadData.map(fw => `
+            <div class="fw-download-card">
+                <div class="fw-card-header">
+                    <span class="fw-card-icon"><img src="${fw.icon}" alt="${fw.name}" style="width:24px;height:24px;object-fit:contain;"></span>
+                    <span class="fw-card-name">${fw.name}</span>
+                </div>
+                <div class="fw-card-desc">${fw.desc}</div>
+                <div class="fw-card-links">
+                    ${fw.links.map(l => `<a class="fw-card-link" href="${l.url}" target="_blank" rel="noopener">🔗 ${l.label}</a>`).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ==================== Terminal Themes ====================
+    const termThemes = {
+        one_dark: {
+            background: '#282c34', foreground: '#abb2bf', cursor: '#abb2bf', cursorAccent: '#282c34', selectionBackground: '#3d4351',
+            black: '#282c34', red: '#e06c75', green: '#98c379', yellow: '#e5c07b', blue: '#61afef', magenta: '#c678dd', cyan: '#56b6c2', white: '#abb2bf',
+            brightBlack: '#5c6370', brightRed: '#e06c75', brightGreen: '#98c379', brightYellow: '#e5c07b', brightBlue: '#61afef', brightMagenta: '#c678dd', brightCyan: '#56b6c2', brightWhite: '#ffffff'
+        },
+        tokyo_night: {
+            background: '#1a1b26', foreground: '#a9b1d6', cursor: '#c0caf5', cursorAccent: '#1a1b26', selectionBackground: '#33467c',
+            black: '#32344a', red: '#f7768e', green: '#9ece6a', yellow: '#e0af68', blue: '#7aa2f7', magenta: '#bb9af7', cyan: '#7dcfff', white: '#c0caf5',
+            brightBlack: '#565f89', brightRed: '#f7768e', brightGreen: '#9ece6a', brightYellow: '#e0af68', brightBlue: '#7aa2f7', brightMagenta: '#bb9af7', brightCyan: '#7dcfff', brightWhite: '#ffffff'
+        },
+        dracula: {
+            background: '#282a36', foreground: '#f8f8f2', cursor: '#f8f8f2', cursorAccent: '#282a36', selectionBackground: '#44475a',
+            black: '#000000', red: '#ff5555', green: '#50fa7b', yellow: '#f1fa8c', blue: '#bd93f9', magenta: '#ff79c6', cyan: '#8be9fd', white: '#f8f8f2',
+            brightBlack: '#6272a4', brightRed: '#ff6e6e', brightGreen: '#69ff94', brightYellow: '#ffffa5', brightBlue: '#d6acff', brightMagenta: '#ff92df', brightCyan: '#a4ffff', brightWhite: '#ffffff'
+        },
+        monokai: {
+            background: '#272822', foreground: '#f8f8f2', cursor: '#f8f8f0', cursorAccent: '#272822', selectionBackground: '#49483e',
+            black: '#272822', red: '#f92672', green: '#a6e22e', yellow: '#f4bf75', blue: '#66d9ef', magenta: '#ae81ff', cyan: '#a1efe4', white: '#f8f8f2',
+            brightBlack: '#75715e', brightRed: '#f92672', brightGreen: '#a6e22e', brightYellow: '#f4bf75', brightBlue: '#66d9ef', brightMagenta: '#ae81ff', brightCyan: '#a1efe4', brightWhite: '#f9f8f5'
+        },
+        github_dark: {
+            background: '#0d1117', foreground: '#c9d1d9', cursor: '#c9d1d9', cursorAccent: '#0d1117', selectionBackground: '#264f78',
+            black: '#484f58', red: '#ff7b72', green: '#7ee787', yellow: '#f2cc60', blue: '#79c0ff', magenta: '#d2a8ff', cyan: '#56d4dd', white: '#c9d1d9',
+            brightBlack: '#6e7681', brightRed: '#ffa198', brightGreen: '#56d364', brightYellow: '#e3b341', brightBlue: '#a5d6ff', brightMagenta: '#bc8cff', brightCyan: '#79c0ff', brightWhite: '#f0f6fc'
+        },
+        solarized_dark: {
+            background: '#002b36', foreground: '#839496', cursor: '#839496', cursorAccent: '#002b36', selectionBackground: '#073642',
+            black: '#073642', red: '#dc322f', green: '#859900', yellow: '#b58900', blue: '#268bd2', magenta: '#d33682', cyan: '#2aa198', white: '#eee8d5',
+            brightBlack: '#586e75', brightRed: '#cb4b16', brightGreen: '#586e75', brightYellow: '#657b83', brightBlue: '#839496', brightMagenta: '#6c71c4', brightCyan: '#93a1a1', brightWhite: '#fdf6e3'
+        },
+        github_light: {
+            background: '#ffffff', foreground: '#24292f', cursor: '#24292f', cursorAccent: '#ffffff', selectionBackground: '#dbeafe',
+            black: '#24292f', red: '#cf222e', green: '#116329', yellow: '#4d2d00', blue: '#0969da', magenta: '#8250df', cyan: '#1b7c83', white: '#6e7781',
+            brightBlack: '#57606a', brightRed: '#a40e26', brightGreen: '#1a7f37', brightYellow: '#633c01', brightBlue: '#218bff', brightMagenta: '#a475f9', brightCyan: '#3192aa', brightWhite: '#8c959f'
+        },
+        solarized_light: {
+            background: '#fdf6e3', foreground: '#657b83', cursor: '#657b83', cursorAccent: '#fdf6e3', selectionBackground: '#eee8d5',
+            black: '#073642', red: '#dc322f', green: '#859900', yellow: '#b58900', blue: '#268bd2', magenta: '#d33682', cyan: '#2aa198', white: '#eee8d5',
+            brightBlack: '#586e75', brightRed: '#cb4b16', brightGreen: '#586e75', brightYellow: '#657b83', brightBlue: '#839496', brightMagenta: '#6c71c4', brightCyan: '#93a1a1', brightWhite: '#fdf6e3'
+        }
+    };
+
+    function changeTermFontSize(size) {
+        if (!termInstance) return;
+        termInstance.options.fontSize = parseInt(size);
+        if (termFitAddon) termFitAddon.fit();
+        sendResize();
+    }
+
+    function changeTermTheme(themeName) {
+        if (!termInstance) return;
+        const theme = termThemes[themeName];
+        if (!theme) return;
+        termInstance.options.theme = theme;
+        const container = document.getElementById('terminal-container');
+        if (container) container.style.background = theme.background;
+    }
+
+    let termLogBuffer = [];
+    const TERM_LOG_MAX = 10000;
+
+    function termLogAppend(data) {
+        termLogBuffer.push(data);
+        if (termLogBuffer.length > TERM_LOG_MAX) {
+            termLogBuffer = termLogBuffer.slice(termLogBuffer.length - TERM_LOG_MAX);
+        }
+    }
+
+    function exportTermLog() {
+        if (!termLogBuffer.length) { alert('暂无终端日志可导出'); return; }
+        let text = '';
+        for (const chunk of termLogBuffer) {
+            if (typeof chunk === 'string') {
+                text += chunk;
+            } else {
+                text += new TextDecoder().decode(chunk);
+            }
+        }
+        const cleaned = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\].*?\x07/g, '').replace(/\r/g, '');
+        const blob = new Blob([cleaned], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const d = new Date();
+        const fname = 'term_log_' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0') + '.txt';
+        a.href = url;
+        a.download = fname;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // ==================== Terminal (xterm.js + WebSocket) ====================
+    function initTerminal() {
+        termInitialized = true;
+        const container = document.getElementById('terminal-container');
+
+        termInstance = new Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: '"Cascadia Code", "Fira Code", Menlo, Monaco, monospace',
+            theme: termThemes['github_dark'],
+            scrollback: 10000,
+            allowProposedApi: true
+        });
+        termFitAddon = new FitAddon.FitAddon();
+        termInstance.loadAddon(termFitAddon);
+        termInstance.open(container);
+        termFitAddon.fit();
+
+        // ✅ 输入监听只绑定一次（避免重连时重复叠加）
+        termInstance.onData((data) => {
+            if (termWs && termWs.readyState === WebSocket.OPEN) {
+                const buf = new Uint8Array(data.length + 1);
+                buf[0] = 0x30; // '0' = data frame
+                new TextEncoder().encodeInto(data, buf.subarray(1));
+                termWs.send(buf);
+            }
+        });
+
+        // ✅ 点击终端区域 → 已断开则重连（让 "Click terminal to reconnect" 真正生效）
+        container.addEventListener('click', () => {
+            if (!termWs || termWs.readyState !== WebSocket.OPEN) {
+                reconnectTerminal();
+            }
+        });
+
+        connectTerminal();
+
+        window.addEventListener('resize', () => {
+            if (termFitAddon && document.getElementById('terminal-panel').classList.contains('active')) {
+                termFitAddon.fit();
+                sendResize();
+            }
+        });
+    }
+
+    // ✅ 复位终端：清屏 + 断开重连（用于终端错乱/卡死时恢复）
+    function resetTerminal() {
+        if (!termInitialized || !termInstance) return;
+        termInstance.clear();
+        termInstance.writeln('\x1b[33m⟳ Terminal reset...\x1b[0m');
+        if (termWs) {
+            try {
+                termWs.onopen = termWs.onmessage = termWs.onclose = termWs.onerror = null;
+                termWs.close();
+            } catch {}
+            termWs = null;
+        }
+        setTimeout(() => reconnectTerminal(), 150);
+    }
+
+    // ✅ 安全重连
+    function reconnectTerminal() {
+        if (termWs) {
+            try {
+                termWs.onopen = termWs.onmessage = termWs.onclose = termWs.onerror = null;
+                termWs.close();
+            } catch {}
+            termWs = null;
+        }
+        if (termInstance) {
+            termInstance.writeln('\r\n\x1b[33m↻ Reconnecting...\x1b[0m');
+        }
+        connectTerminal();
+    }
+
+    function connectTerminal() {
+        // ✅ 防御：已有可用/正在建立的连接就不重复创建
+        if (termWs && (termWs.readyState === WebSocket.OPEN || termWs.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        termWs = new WebSocket(`${proto}//${location.host}/api/terminal`);
+        termWs.binaryType = 'arraybuffer';
+
+        termWs.onopen = () => {
+            termInstance.writeln('\x1b[32m✔ Connected to remote shell\x1b[0m\r\n');
+            sendResize();
+            updateTermStatus(true);
+        };
+
+        termWs.onmessage = (e) => {
+            const data = typeof e.data === 'string' ? e.data : new Uint8Array(e.data);
+            termInstance.write(data);
+            termLogAppend(e.data);
+        };
+
+        termWs.onclose = () => {
+            termInstance.writeln('\r\n\x1b[31m✘ Connection closed. Click terminal to reconnect.\x1b[0m');
+            termWs = null;
+            updateTermStatus(false);
+        };
+
+        termWs.onerror = () => {};
+    }
+
+    function updateTermStatus(online) {
+        const dot = document.getElementById('term-status-dot');
+        if (!dot) return;
+        if (online) {
+            dot.classList.remove('offline');
+        } else {
+            dot.classList.add('offline');
+        }
+    }
+
+    function sendResize() {
+        if (!termWs || termWs.readyState !== WebSocket.OPEN || !termInstance) return;
+        const buf = new Uint8Array(5);
+        buf[0] = 0x31; // '1' = resize frame
+        const rows = termInstance.rows, cols = termInstance.cols;
+        buf[1] = (rows >> 8) & 0xff; buf[2] = rows & 0xff;
+        buf[3] = (cols >> 8) & 0xff; buf[4] = cols & 0xff;
+        termWs.send(buf);
+    }
+
+    // ==================== Advanced Mode & Log ====================
+    const LOG_MAX_LINES = 10000;
+    let logLines = [];
+
+    function toggleAdvancedMode() {
+        const panel = document.getElementById('flash-panel');
+        const checked = document.getElementById('adv-mode-check').checked;
+        const logPanel = document.getElementById('log-panel');
+        if (checked) {
+            panel.classList.add('advanced');
+            logPanel.classList.add('visible');
+        } else {
+            panel.classList.remove('advanced');
+            logPanel.classList.remove('visible');
+        }
+    }
+
+    function appendLog(msg, type) {
+        type = type || 'data';
+        const now = new Date();
+        const ts = now.toLocaleString('zh-CN', { hour12: false }) + '.' + String(now.getMilliseconds()).padStart(3, '0');
+        logLines.push({ ts, msg, type });
+        if (logLines.length > LOG_MAX_LINES) {
+            logLines.splice(0, logLines.length - LOG_MAX_LINES);
+        }
+        renderLog();
+    }
+
+    function renderLog() {
+        const body = document.getElementById('log-body');
+        const countEl = document.getElementById('log-count');
+        const wasAtBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 30;
+        let html = '';
+        for (let i = 0; i < logLines.length; i++) {
+            const l = logLines[i];
+            html += '<div class="log-line log-' + l.type + '"><span class="log-ts">[' + l.ts + ']</span>' + escHtml(l.msg) + '</div>';
+        }
+        body.innerHTML = html;
+        countEl.textContent = '日志 (' + logLines.length + '/' + LOG_MAX_LINES + ')';
+        if (wasAtBottom) {
+            body.scrollTop = body.scrollHeight;
+        }
+    }
+
+    function escHtml(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function clearLog() {
+        logLines = [];
+        renderLog();
+        appendLog('日志已清空', 'info');
+    }
+
+    function exportLog() {
+        if (!logLines.length) { alert('暂无日志可导出'); return; }
+        let text = '';
+        for (const l of logLines) {
+            text += '[' + l.ts + '] ' + l.msg + '\n';
+        }
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const d = new Date();
+        const fname = 'flash_log_' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0') + '.txt';
+        a.href = url;
+        a.download = fname;
+        a.click();
+        URL.revokeObjectURL(url);
+        appendLog('日志已导出: ' + fname, 'info');
+    }
+
+    // ==================== Flash Functions ====================
+    let eventSource = null;
+
+    // 固件文件名预检：仅支持 .img/.bin 及其 .gz 压缩形式
+    function fwNameOk(name) {
+        let s = (name || '').toLowerCase();
+        if (s.endsWith('.gz')) s = s.slice(0, -3);
+        return s.endsWith('.img') || s.endsWith('.bin') || s.endsWith('.rar') || s.endsWith('.bz2');
+    }
+
+    document.getElementById('firmware-file').addEventListener('change', function () {
+        if (!this.files.length) return;
+        const name = this.files[0].name;
+        if (!fwNameOk(name)) {
+            showResult(`⚠️ 不支持的文件类型: ${name}，仅支持 .img / .bin 固件或其 gzip 压缩包(.img.gz / .bin.gz)`, "error");
+            appendLog('不支持的文件类型: ' + name, 'error');
+            this.value = '';
+            return;
+        }
+        showResult(/\.gz$/i.test(name) ? `已选择 ${name}，上传时将自动解压` : `已选择 ${name}`, "info");
+        appendLog('已选择固件文件: ' + name, 'info');
+    });
+
+    async function loadDevices() {
+        const sel = document.getElementById('device-select');
+        sel.innerHTML = '<option value="">加载中...</option>';
+        try {
+            const resp = await fetch('/api/devices');
+            if (!resp.ok) throw new Error("HTTP " + resp.status);
+            const devices = await resp.json();
+            sel.innerHTML = '<option value="">-- 请选择目标设备 --</option>';
+            if (!devices?.length) {
+                const o = document.createElement('option');
+                o.text = "未发现符合条件的设备";
+                o.disabled = true;
+                o.selected = true;
+                sel.add(o);
+                showResult("未扫描到可用设备，请插入 U 盘、SATA 硬盘或 NVMe 硬盘后点击刷新", "error");
+                appendLog('未扫描到可用设备', 'error');
+                return;
+            }
+            devices.forEach(d => {
+                const o = document.createElement('option');
+                o.value = d.path;
+                o.text = `${d.type ? '['+d.type+']' : ''} ${d.path} ${d.size ? '('+d.size+')' : ''} ${d.model ? '- '+d.model : ''}`;
+                sel.add(o);
+            });
+            showResult(`已加载 ${devices.length} 个设备`, "success");
+            appendLog('设备列表已加载，共 ' + devices.length + ' 个设备', 'success');
+        } catch (e) {
+            sel.innerHTML = '<option value="">加载失败</option>';
+            showResult("加载失败: " + e.message, "error");
+            appendLog('设备加载失败: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== Upload Progress Polling ====================
+    // 上传期间每 500ms 轮询 /api/upload_status，显示已接收流量 / 速度 / 当前阶段
+    let uploadPollTimer = null;
+
+    function startUploadPoll() {
+        stopUploadPoll();
+        const mb = b => (b / 1048576).toFixed(1);
+        const labels = { uploading: '正在上传到 /tmp/', streaming: '正在接收并解压到 /tmp/', extracting: '正在解压到 /tmp/' };
+        let lastLogTime = 0;
+        let lastStage = '';
+        const timer = setInterval(async () => {
+            try {
+                const r = await fetch('/api/upload_status', { cache: 'no-store' });
+                const s = await r.json();
+                if (uploadPollTimer !== timer || !s.active) return;
+                const label = labels[s.stage] || '处理中';
+                let line = label;
+                if (s.name) line += ' 文件: ' + s.name;
+                if (s.stage === 'extracting') {
+                    line += ' 已接收 ' + mb(s.received) + ' MB，已解压 ' + s.extract_elapsed.toFixed(0) + ' 秒，请稍候...';
+                } else {
+                    line += ' 已接收: ' + (s.total > 0 ? mb(s.received) + ' / ' + mb(s.total) + ' MB (' + s.progress.toFixed(0) + '%)' : mb(s.received) + ' MB');
+                    line += ' 速度: ' + mb(s.speed) + ' MB/s';
+                }
+                showResult(line, "info");
+                const now = Date.now();
+                if (s.stage !== lastStage || now - lastLogTime >= 3000) {
+                    lastLogTime = now;
+                    if (s.stage !== lastStage) lastStage = s.stage;
+                    appendLog(line, 'info');
+                }
+            } catch {}
+        }, 500);
+        uploadPollTimer = timer;
+    }
+
+    function stopUploadPoll() {
+        if (uploadPollTimer) { clearInterval(uploadPollTimer); uploadPollTimer = null; }
+    }
+
+    async function handleUpload(e) {
+        e.preventDefault();
+        const dev = document.getElementById('device-select');
+        const file = document.getElementById('firmware-file');
+        if (!dev.value) { showResult("请先选择目标设备！", "error"); appendLog("请先选择目标设备", "error"); return; }
+        if (!file.files.length) { showResult("请先选择固件文件！", "error"); appendLog("请先选择固件文件", "error"); return; }
+        if (!fwNameOk(file.files[0].name)) {
+            showResult(`⚠️ 不支持的文件类型: ${file.files[0].name}，仅支持 .img / .bin 固件或其 gzip 压缩包(.img.gz / .bin.gz)`, "error");
+            appendLog('不支持的文件类型: ' + file.files[0].name, 'error');
+            return;
+        }
+
+        const mb = (file.files[0].size / 1048576).toFixed(1);
+        if (!confirm(`⚠️ 确定要将 ${mb} MB 刷写到 ${dev.value}？\n数据将被永久清除！`)) return;
+        appendLog('用户确认刷写: ' + file.files[0].name + ' (' + mb + ' MB) → ' + dev.value, 'warn');
+
+        const fd = new FormData();
+        fd.append('firmware', file.files[0]);
+        fd.append('target_device', dev.value);
+
+        const btn = document.getElementById('btn-flash');
+        btn.disabled = true; btn.textContent = "⏳ 执行中...";
+        showResult(/\.gz$/i.test(file.files[0].name) ? "正在上传并解压到 /tmp/ ..." : "正在上传到 /tmp/ ...", "info");
+        appendLog('开始上传固件: ' + file.files[0].name + ' → ' + dev.value, 'info');
+        hideProgress();
+        startUploadPoll();
+
+        try {
+            const resp = await fetch('/upload', { method: 'POST', body: fd });
+            stopUploadPoll();   // 服务端已处理完，先停轮询再显示结果
+            const text = await resp.text();
+            let result;
+            try { result = JSON.parse(text); } catch { showResult(`非JSON响应: ${text.substring(0,300)}`, "error"); appendLog('非JSON响应: ' + text.substring(0,300), 'error'); resetBtn(); return; }
+            if (!resp.ok) { showResult("❌ " + (result.error || "未知错误"), "error"); appendLog("上传失败: " + (result.error || "未知错误"), "error"); resetBtn(); return; }
+            showResult("✅ " + result.message, "info");
+            appendLog('上传完成: ' + result.message + ' (task_id=' + result.task_id + ')', 'success');
+            startProgress(result.task_id);
+        } catch (err) {
+            stopUploadPoll();
+            showResult("网络错误: " + err.message, "error"); appendLog("网络错误: " + err.message, "error"); resetBtn();
+        }
+    }
+
+    function startProgress(taskId) {
+        if (eventSource) eventSource.close();
+        showProgress();
+        eventSource = new EventSource(`/api/progress?id=${taskId}`);
+        eventSource.onmessage = (e) => {
+            try {
+                const t = JSON.parse(e.data);
+                updateProgressUI(t);
+                if (t.status === "done") { eventSource.close(); eventSource = null; showResult("✅ 刷写完成！", "success"); appendLog("刷写完成！", "success"); resetBtn(); }
+                else if (t.status === "error") { eventSource.close(); eventSource = null; showResult("❌ " + (t.error||"未知错误"), "error"); appendLog("刷写失败: " + (t.error||"未知错误"), "error"); resetBtn(); }
+            } catch {}
+        };
+        eventSource.onerror = () => { if (eventSource) { eventSource.close(); eventSource = null; } };
+    }
+
+    let lastStatus = '';
+    let lastProgressLogTime = 0;
+    function updateProgressUI(t) {
+        const pct = Math.min(t.progress, 100).toFixed(1);
+        document.getElementById('progress-bar').style.width = pct + '%';
+        document.getElementById('progress-percent').textContent = pct + '%';
+        document.getElementById('progress-written').textContent = '已写入: ' + fmtBytes(t.written);
+        document.getElementById('progress-total').textContent = '总大小: ' + fmtBytes(t.total);
+        document.getElementById('progress-speed').textContent = '速度: ' + (t.speed / 1048576).toFixed(1) + ' MB/s';
+        const badge = document.getElementById('status-badge');
+        const map = { writing: ['写入中','status-writing'], partitioning: ['重建分区表','status-syncing'], syncing: ['同步中','status-syncing'], done: ['完成','status-done'], error: ['错误','status-error'] };
+        const [txt, cls] = map[t.status] || ['',''];
+        badge.textContent = txt; badge.className = 'status-badge ' + cls;
+        var now = Date.now();
+        if (t.status !== lastStatus || t.status === 'done' || t.status === 'error' || now - lastProgressLogTime >= 3000) {
+            lastProgressLogTime = now;
+            if (t.status !== lastStatus) lastStatus = t.status;
+            appendLog('进度: ' + pct + '% | 已写入: ' + fmtBytes(t.written) + ' / ' + fmtBytes(t.total) + ' | 速度: ' + (t.speed / 1048576).toFixed(1) + ' MB/s | 状态: ' + txt, t.status === 'error' ? 'error' : t.status === 'done' ? 'success' : 'data');
+        }
+    }
+
+    // ==================== Firewall ====================
+    let fwEnabled = false;
+
+    function onNatTypeChange() {
+        var action = document.getElementById('fw-nat-action').value;
+        var isMasq = action === 'masquerade';
+        var fields = ['fw-nat-proto-label', 'fw-nat-dport-label', 'fw-nat-target-label'];
+        var inputs = ['fw-nat-proto', 'fw-nat-dport', 'fw-nat-target'];
+        for (var i = 0; i < fields.length; i++) {
+            var el = document.getElementById(fields[i]);
+            var inp = document.getElementById(inputs[i]);
+            if (isMasq) {
+                el.style.display = 'none';
+                inp.style.display = 'none';
+            } else {
+                el.style.display = '';
+                inp.style.display = '';
+            }
+        }
+    }
+
+    async function loadFirewallStatus() {
+        try {
+            const resp = await fetch('/api/firewall/status');
+            const d = await resp.json();
+            fwEnabled = d.enabled;
+            updateFwToggle(d.enabled);
+            var inputPolicy = document.getElementById('fw-input-policy');
+            inputPolicy.textContent = 'INPUT: ' + (d.inputPolicy || '-');
+            inputPolicy.className = 'fw-policy-badge fw-policy-' + (d.inputPolicy || 'ACCEPT');
+            var fwdPolicy = document.getElementById('fw-forward-policy');
+            fwdPolicy.textContent = 'FORWARD: ' + (d.forwardPolicy || '-');
+            fwdPolicy.className = 'fw-policy-badge fw-policy-' + (d.forwardPolicy || 'DROP');
+            renderFwRules('fw-input-rules', d.inputRules, 'input');
+            renderFwRules('fw-forward-rules', d.forwardRules, 'forward');
+            renderFwRules('fw-nat-rules', d.natRules, 'nat');
+        } catch (e) {
+            document.getElementById('fw-input-rules').innerHTML = '<div class="fw-empty">❌ 加载失败: ' + e.message + '</div>';
+        }
+    }
+
+    function updateFwToggle(enabled) {
+        var sw = document.getElementById('fw-switch');
+        var label = document.getElementById('fw-toggle-label');
+        if (enabled) {
+            sw.classList.add('on');
+            label.textContent = '已启用';
+        } else {
+            sw.classList.remove('on');
+            label.textContent = '已禁用';
+        }
+    }
+
+    function renderFwRules(containerId, rules, chain) {
+        var container = document.getElementById(containerId);
+        if (!rules || !rules.length) {
+            container.innerHTML = '<div class="fw-empty">暂无规则</div>';
+            return;
+        }
+        var html = '<table class="fw-table"><thead><tr>';
+        if (chain === 'nat') {
+            html += '<th>#</th><th>类型</th><th>协议</th><th>端口</th><th>目标</th><th>操作</th>';
+        } else {
+            html += '<th>#</th><th>动作</th><th>协议</th><th>源IP</th><th>目标IP</th><th>端口</th><th>操作</th>';
+        }
+        html += '</tr></thead><tbody>';
+        for (var i = 0; i < rules.length; i++) {
+            var r = rules[i];
+            var actionClass = 'fw-action-' + r.action;
+            html += '<tr>';
+            html += '<td>' + r.id + '</td>';
+            html += '<td><span class="' + actionClass + '">' + r.action + '</span></td>';
+            html += '<td>' + (r.protocol || '-') + '</td>';
+            if (chain === 'nat') {
+                html += '<td>' + (r.dstPort || '-') + '</td>';
+                html += '<td>' + (r.natTarget || '-') + '</td>';
+            } else {
+                html += '<td>' + (r.srcIP || '-') + '</td>';
+                html += '<td>' + (r.dstIP || '-') + '</td>';
+                html += '<td>' + (r.dstPort || '-') + '</td>';
+            }
+            html += '<td><button class="fw-btn-del" onclick="deleteFwRule(\'' + chain + '\',' + r.id + ')">删除</button></td>';
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    async function addFirewallRule(chain) {
+        var req = { chain: chain };
+        if (chain === 'input') {
+            req.action = document.getElementById('fw-input-action').value;
+            req.protocol = document.getElementById('fw-input-proto').value;
+            req.srcIP = document.getElementById('fw-input-srcip').value.trim();
+            req.dstPort = document.getElementById('fw-input-dport').value.trim();
+        } else if (chain === 'forward') {
+            req.action = document.getElementById('fw-fwd-action').value;
+            req.protocol = document.getElementById('fw-fwd-proto').value;
+            req.srcIP = document.getElementById('fw-fwd-srcip').value.trim();
+            req.dstIP = document.getElementById('fw-fwd-dstip').value.trim();
+            req.dstPort = document.getElementById('fw-fwd-dport').value.trim();
+        } else if (chain === 'nat') {
+            req.action = document.getElementById('fw-nat-action').value;
+            req.protocol = document.getElementById('fw-nat-proto').value;
+            req.dstPort = document.getElementById('fw-nat-dport').value.trim();
+            req.natTarget = document.getElementById('fw-nat-target').value.trim();
+        }
+
+        if (chain === 'nat' && req.action === 'dnat' && (!req.dstPort || !req.natTarget)) {
+            alert('端口转发需要填写外部端口和目标地址');
+            return;
+        }
+
+        try {
+            const resp = await fetch('/api/firewall/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(req)
+            });
+            const d = await resp.json();
+            if (d.error) {
+                alert('添加失败: ' + d.error);
+            } else {
+                if (chain === 'input') {
+                    document.getElementById('fw-input-srcip').value = '';
+                    document.getElementById('fw-input-dport').value = '';
+                } else if (chain === 'forward') {
+                    document.getElementById('fw-fwd-srcip').value = '';
+                    document.getElementById('fw-fwd-dstip').value = '';
+                    document.getElementById('fw-fwd-dport').value = '';
+                } else if (chain === 'nat') {
+                    document.getElementById('fw-nat-dport').value = '';
+                    document.getElementById('fw-nat-target').value = '';
+                }
+                loadFirewallStatus();
+            }
+        } catch (e) {
+            alert('请求失败: ' + e.message);
+        }
+    }
+
+    async function deleteFwRule(chain, id) {
+        if (!confirm('确定删除规则 #' + id + '？')) return;
+        try {
+            const resp = await fetch('/api/firewall/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chain: chain, id: id })
+            });
+            const d = await resp.json();
+            if (d.error) {
+                alert('删除失败: ' + d.error);
+            } else {
+                loadFirewallStatus();
+            }
+        } catch (e) {
+            alert('请求失败: ' + e.message);
+        }
+    }
+
+    async function toggleFirewall() {
+        var newEnabled = !fwEnabled;
+        try {
+            const resp = await fetch('/api/firewall/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: newEnabled })
+            });
+            const d = await resp.json();
+            if (d.error) {
+                alert('切换失败: ' + d.error);
+            } else {
+                loadFirewallStatus();
+            }
+        } catch (e) {
+            alert('请求失败: ' + e.message);
+        }
+    }
+
+    // ==================== About ====================
+    function showAbout() { document.getElementById('about-overlay').classList.add('visible'); }
+    function hideAbout() { document.getElementById('about-overlay').classList.remove('visible'); }
+
+    // ==================== Backup & Restore ====================
+    let backupSelectedDisk = '';
+    let restoreSelectedDisk = '';
+    let restoreSelectedFile = null;
+    let backupRunning = false;
+    let restoreRunning = false;
+    let backupAbortCtrl = null;
+    let restoreAbortCtrl = null;
+
+    function loadBackupDisks() {
+        fetch('/api/backup/disks').then(r => r.json()).then(data => {
+            var list = document.getElementById('backup-disk-list');
+            if (!data.disks || !data.disks.length) {
+                list.innerHTML = '<div style="color:#888;font-size:13px;padding:8px;">未检测到可用磁盘</div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < data.disks.length; i++) {
+                var d = data.disks[i];
+                html += '<div class="backup-disk-item" data-dev="' + d.device + '" onclick="selectBackupDisk(this)">';
+                html += '<div class="backup-disk-icon">💾</div>';
+                html += '<div class="backup-disk-info">';
+                html += '<div class="backup-disk-dev">' + d.device + '</div>';
+                html += '<div class="backup-disk-detail">' + (d.model || '未知') + '  |  ' + fmtBytes(d.size) + '</div>';
+                html += '</div>';
+                html += '<span class="backup-disk-type">' + d.type + '</span>';
+                html += '</div>';
+            }
+            list.innerHTML = html;
+        }).catch(e => {
+            document.getElementById('backup-disk-list').innerHTML = '<div style="color:#d9534f;font-size:13px;padding:8px;">加载失败: ' + e.message + '</div>';
+        });
+    }
+
+    function loadRestoreDisks() {
+        fetch('/api/backup/disks').then(r => r.json()).then(data => {
+            var list = document.getElementById('restore-disk-list');
+            if (!data.disks || !data.disks.length) {
+                list.innerHTML = '<div style="color:#888;font-size:13px;padding:8px;">未检测到可用磁盘</div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < data.disks.length; i++) {
+                var d = data.disks[i];
+                html += '<div class="backup-disk-item" data-dev="' + d.device + '" onclick="selectRestoreDisk(this)">';
+                html += '<div class="backup-disk-icon">💾</div>';
+                html += '<div class="backup-disk-info">';
+                html += '<div class="backup-disk-dev">' + d.device + '</div>';
+                html += '<div class="backup-disk-detail">' + (d.model || '未知') + '  |  ' + fmtBytes(d.size) + '</div>';
+                html += '</div>';
+                html += '<span class="backup-disk-type">' + d.type + '</span>';
+                html += '</div>';
+            }
+            list.innerHTML = html;
+            checkRestoreReady();
+        }).catch(e => {
+            document.getElementById('restore-disk-list').innerHTML = '<div style="color:#d9534f;font-size:13px;padding:8px;">加载失败: ' + e.message + '</div>';
+        });
+    }
+
+    function selectBackupDisk(el) {
+        document.querySelectorAll('#backup-disk-list .backup-disk-item').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        backupSelectedDisk = el.dataset.dev;
+        if (!backupRunning) {
+            document.getElementById('btn-backup').disabled = false;
+        }
+    }
+
+    function selectRestoreDisk(el) {
+        document.querySelectorAll('#restore-disk-list .backup-disk-item').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        restoreSelectedDisk = el.dataset.dev;
+        checkRestoreReady();
+    }
+
+    function onRestoreFileSelected(input) {
+        if (input.files && input.files[0]) {
+            restoreSelectedFile = input.files[0];
+            document.getElementById('restore-file-info').textContent = '已选择: ' + restoreSelectedFile.name + ' (' + fmtBytes(restoreSelectedFile.size) + ')';
+            checkRestoreReady();
+        }
+    }
+
+    function checkRestoreReady() {
+        var btn = document.getElementById('btn-restore');
+        if (restoreSelectedDisk && restoreSelectedFile && !restoreRunning) {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    }
+
+    function startBackup() {
+        if (backupRunning) {
+            cancelBackup();
+            return;
+        }
+        if (!backupSelectedDisk) return;
+        var btn = document.getElementById('btn-backup');
+        backupRunning = true;
+        btn.textContent = '🚫 取消备份';
+        btn.classList.add('btn-cancel');
+        document.getElementById('backup-progress-bar').classList.add('visible');
+        document.getElementById('backup-bar-fill').style.width = '0%';
+        showBackupStatus('⏳ 正在开始备份...', 'info');
+
+        var evtSource = new EventSource('/api/backup/progress');
+        evtSource.addEventListener('progress', function(e) {
+            var data = JSON.parse(e.data);
+            handleBackupProgress(data);
+            if (data.done || data.error) {
+                evtSource.close();
+                backupRunning = false;
+                btn.textContent = '⬇️ 备份磁盘';
+                btn.classList.remove('btn-cancel');
+                btn.disabled = !backupSelectedDisk;
+            }
+        });
+
+        var link = document.createElement('a');
+        link.href = '/api/backup/stream?disk=' + encodeURIComponent(backupSelectedDisk);
+        link.download = backupSelectedDisk.replace('/dev/', '') + '.img.gz';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function cancelBackup() {
+        fetch('/api/backup/cancel', { method: 'POST' }).then(() => {
+            backupRunning = false;
+            var btn = document.getElementById('btn-backup');
+            btn.textContent = '⬇️ 备份磁盘';
+            btn.classList.remove('btn-cancel');
+            btn.disabled = !backupSelectedDisk;
+            document.getElementById('backup-progress-bar').classList.remove('visible');
+            showBackupStatus('🚫 备份已取消', 'warning');
+        });
+    }
+
+    function handleBackupProgress(data) {
+        if (data.error) {
+            showBackupStatus('❌ ' + data.error, 'error');
+            document.getElementById('backup-progress-bar').classList.remove('visible');
+            return;
+        }
+        var pct = data.percent || 0;
+        document.getElementById('backup-bar-fill').style.width = pct.toFixed(1) + '%';
+        var readText = fmtBytes(data.read || 0);
+        var totalText = data.total > 0 ? fmtBytes(data.total) : '未知';
+        var speedText = fmtSpeed(data.speed || 0);
+        var etaText = fmtEta(data.eta || 0);
+        if (data.done) {
+            showBackupStatus('✅ 备份完成: ' + readText + ' / ' + totalText, 'success');
+        } else {
+            showBackupStatus('⏳ 备份中: ' + readText + ' / ' + totalText + '  |  速度: ' + speedText + '  |  剩余: ' + etaText + '  |  ' + pct.toFixed(1) + '%', 'info');
+        }
+    }
+
+    function showBackupStatus(msg, type) {
+        var el = document.getElementById('backup-status');
+        el.textContent = msg;
+        el.style.color = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : type === 'warning' ? '#8d6e00' : '#666';
+    }
+
+    function startRestore() {
+        if (restoreRunning) {
+            cancelRestore();
+            return;
+        }
+        if (!restoreSelectedDisk || !restoreSelectedFile) return;
+        var btn = document.getElementById('btn-restore');
+        restoreRunning = true;
+        btn.textContent = '🚫 取消还原';
+        btn.classList.add('btn-cancel');
+        btn.disabled = false;
+        document.getElementById('restore-progress-bar').classList.add('visible');
+        document.getElementById('restore-bar-fill').style.width = '0%';
+        showRestoreStatus('⏳ 正在上传并还原...', 'info');
+
+        restoreAbortCtrl = new AbortController();
+
+        var evtSource = new EventSource('/api/backup/progress');
+        evtSource.addEventListener('progress', function(e) {
+            var data = JSON.parse(e.data);
+            handleRestoreProgress(data);
+            if (data.done || data.error) {
+                evtSource.close();
+                restoreRunning = false;
+                btn.textContent = '⬆️ 还原磁盘';
+                btn.classList.remove('btn-cancel');
+                btn.disabled = !(restoreSelectedDisk && restoreSelectedFile);
+            }
+        });
+
+        fetch('/api/restore/stream?disk=' + encodeURIComponent(restoreSelectedDisk), {
+            method: 'POST',
+            body: restoreSelectedFile,
+            signal: restoreAbortCtrl.signal
+        }).then(resp => {
+            if (!resp.ok) {
+                return resp.text().then(t => { throw new Error(t); });
+            }
+            return resp.json();
+        }).then(data => {
+            if (data.error) {
+                showRestoreStatus('❌ ' + data.error, 'error');
+            } else {
+                showRestoreStatus('✅ ' + data.message, 'success');
+                document.getElementById('restore-bar-fill').style.width = '100%';
+            }
+        }).catch(e => {
+            if (e.name === 'AbortError') return;
+            showRestoreStatus('❌ 上传失败: ' + e.message, 'error');
+        });
+    }
+
+    function cancelRestore() {
+        if (restoreAbortCtrl) {
+            restoreAbortCtrl.abort();
+            restoreAbortCtrl = null;
+        }
+        fetch('/api/backup/cancel', { method: 'POST' });
+        restoreRunning = false;
+        var btn = document.getElementById('btn-restore');
+        btn.textContent = '⬆️ 还原磁盘';
+        btn.classList.remove('btn-cancel');
+        btn.disabled = !(restoreSelectedDisk && restoreSelectedFile);
+        document.getElementById('restore-progress-bar').classList.remove('visible');
+        showRestoreStatus('🚫 还原已取消，设备可能无法使用', 'warning');
+    }
+
+    function handleRestoreProgress(data) {
+        if (data.error) {
+            showRestoreStatus('❌ ' + data.error, 'error');
+            document.getElementById('restore-progress-bar').classList.remove('visible');
+            return;
+        }
+        var pct = data.percent || 0;
+        document.getElementById('restore-bar-fill').style.width = pct.toFixed(1) + '%';
+        var writtenText = fmtBytes(data.read || 0);
+        var totalText = data.total > 0 ? fmtBytes(data.total) : '未知';
+        var speedText = fmtSpeed(data.speed || 0);
+        var etaText = fmtEta(data.eta || 0);
+        if (data.done) {
+            showRestoreStatus('✅ 还原完成: ' + writtenText + ' / ' + totalText, 'success');
+        } else {
+            showRestoreStatus('⏳ 还原中: ' + writtenText + ' / ' + totalText + '  |  速度: ' + speedText + '  |  剩余: ' + etaText + '  |  ' + pct.toFixed(1) + '%', 'info');
+        }
+    }
+
+    function showRestoreStatus(msg, type) {
+        var el = document.getElementById('restore-status');
+        el.textContent = msg;
+        el.style.color = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : type === 'warning' ? '#8d6e00' : '#666';
+    }
+
+    // ==================== Reboot ====================
+    async function triggerReboot(e) {
+        e.preventDefault();
+        if (!confirm("⚠️ 确定立即重启？所有未保存操作将丢失！")) return;
+        const overlay = document.getElementById('reboot-overlay');
+        const status = document.getElementById('reboot-status');
+        overlay.style.display = 'flex';
+        document.getElementById('nav-reboot-btn').classList.add('disabled');
+        try { await fetch('/api/reboot', { method: 'POST' }); } catch {}
+        status.textContent = "重启指令已发送，30 秒内不轮询，等待设备离线...";
+        setTimeout(() => { status.textContent = "正在等待系统启动..."; waitForReboot(); }, 30000);
+    }
+
+    function waitForReboot() {
+        const status = document.getElementById('reboot-status');
+        let n = 0;
+        const iv = setInterval(async () => {
+            n++;
+            status.textContent = `尝试连接... (${n}/60)`;
+            try {
+                const r = await fetch('/api/devices', { cache: 'no-store' });
+                if (r.ok) { clearInterval(iv); status.textContent = "✅ 系统已恢复！即将刷新..."; status.style.color = "#155724"; setTimeout(() => location.reload(), 1500); }
+            } catch {}
+            if (n >= 60) { clearInterval(iv); status.textContent = "⚠️ 等待超时，请手动检查"; status.style.color = "#721c24"; document.getElementById('nav-reboot-btn').classList.remove('disabled'); }
+        }, 2000);
+    }
+
+    // ==================== Boot Order (U-Boot) ====================
+    const bootTypes = [
+        { type: 'usb',      cmd: 'bootcmd_usb',      label: 'USB',        icon: '🔌' },
+        { type: 'nvme',     cmd: 'bootcmd_nvme',     label: 'NVMe',       icon: '⚡' },
+        { type: 'sata',     cmd: 'bootcmd_scsi',     label: 'SATA/SCSI',  icon: '💿' },
+        { type: 'emmc',     cmd: 'bootcmd_emmc',     label: 'eMMC',       icon: '💾' },
+        { type: 'recovery', cmd: 'bootcmd_recovery', label: 'Recovery',   icon: '🔄' },
+        { type: 'maskrom',  cmd: 'bootcmd_maskrom',  label: 'Maskrom',    icon: '🎯' },
+    ];
+    let bootOrder = [];
+    let bootDisabled = new Set();
+    let bootDragSrc = null;
+
+    function parseBootcmd(bootcmd) {
+        const order = [];
+        for (const t of bootTypes) {
+            if (bootcmd.indexOf(t.cmd) >= 0) {
+                order.push(t.type);
+            }
+        }
+        return order;
+    }
+
+    function buildBootcmd(order) {
+        const parts = [];
+        for (const t of order) {
+            if (bootDisabled.has(t)) continue;
+            const bt = bootTypes.find(b => b.type === t);
+            if (bt) parts.push('run ' + bt.cmd);
+        }
+        return parts.join('; ') + ';';
+    }
+
+    async function loadBootOrder() {
+        const list = document.getElementById('boot-list');
+        const varsBody = document.getElementById('boot-vars-body');
+        list.innerHTML = '<div style="text-align:center;color:#aaa;padding:30px 0;">加载中...</div>';
+        varsBody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:20px 0;">加载中...</td></tr>';
+        try {
+            const resp = await fetch('/api/boot_order');
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ error: 'HTTP ' + resp.status }));
+                list.innerHTML = '<div style="text-align:center;color:#d9534f;padding:30px 0;">❌ ' + (err.error || '加载失败') + '</div>';
+                varsBody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#d9534f;padding:20px 0;">❌ ' + (err.error || '加载失败') + '</td></tr>';
+                appendLog('获取引导顺序失败: ' + (err.error || ''), 'error');
+                return;
+            }
+            const data = await resp.json();
+            const bootcmd = data.bootcmd || '';
+            bootDisabled = new Set();
+            for (const bt of bootTypes) {
+                if (!bootcmd.includes(bt.cmd)) {
+                    bootDisabled.add(bt.type);
+                }
+            }
+            var serverOrder = data.order && data.order.length > 0 ? data.order : [];
+            bootOrder = [];
+            for (var i = 0; i < serverOrder.length; i++) {
+                if (bootOrder.indexOf(serverOrder[i]) < 0) bootOrder.push(serverOrder[i]);
+            }
+            for (var j = 0; j < bootTypes.length; j++) {
+                if (bootOrder.indexOf(bootTypes[j].type) < 0) bootOrder.push(bootTypes[j].type);
+            }
+            renderBootList();
+            renderBootVars(data.vars || []);
+            appendLog('引导顺序已加载: ' + data.count + ' 个环境变量, 顺序=' + bootOrder.join(',') + ', bootcmd=' + bootcmd, 'success');
+        } catch (e) {
+            list.innerHTML = '<div style="text-align:center;color:#d9534f;padding:30px 0;">❌ ' + e.message + '</div>';
+            varsBody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#d9534f;padding:20px 0;">❌ ' + e.message + '</td></tr>';
+            appendLog('获取引导顺序失败: ' + e.message, 'error');
+        }
+    }
+
+    function renderBootList() {
+        const list = document.getElementById('boot-list');
+        const saveBtn = document.getElementById('btn-boot-save');
+        if (!bootOrder.length) {
+            list.innerHTML = '<div style="text-align:center;color:var(--text-faint);padding:30px 0;">未找到引导项</div>';
+            saveBtn.disabled = true;
+            return;
+        }
+        list.innerHTML = '';
+        bootOrder.forEach((type, i) => {
+            const bt = bootTypes.find(b => b.type === type) || { label: type, icon: '❓', cmd: type };
+            const disabled = bootDisabled.has(type);
+            const item = document.createElement('div');
+            item.className = 'boot-item boot-type-' + type + (disabled ? ' boot-disabled' : '');
+            item.draggable = !disabled;
+            item.dataset.index = i;
+            item.dataset.type = type;
+            item.innerHTML =
+                '<div class="boot-rank">' + (i + 1) + '</div>' +
+                '<span class="boot-type-badge"><span class="badge-icon">' + bt.icon + '</span>' + bt.label + '</span>' +
+                '<div class="boot-info">' +
+                    '<div class="boot-label">' + bt.label + ' 引导' + (disabled ? ' <span class="boot-disabled-tag">已禁用</span>' : '') + '</div>' +
+                    '<div class="boot-devpath">run ' + bt.cmd + '</div>' +
+                '</div>' +
+                '<div class="boot-toggle ' + (disabled ? '' : 'on') + '" onclick="toggleBootItem(\'' + type + '\', event)"><div class="boot-toggle-knob"></div></div>' +
+                '<span class="boot-handle" style="' + (disabled ? 'visibility:hidden;' : '') + '">⋮⋮</span>';
+            if (!disabled) {
+                item.addEventListener('dragstart', onBootDragStart);
+                item.addEventListener('dragover', onBootDragOver);
+                item.addEventListener('drop', onBootDrop);
+                item.addEventListener('dragend', onBootDragEnd);
+            }
+            list.appendChild(item);
+        });
+        saveBtn.disabled = false;
+    }
+
+    function toggleBootItem(type, e) {
+        if (e) { e.stopPropagation(); }
+        if (bootDisabled.has(type)) {
+            bootDisabled.delete(type);
+        } else {
+            var enabledCount = bootOrder.filter(t => !bootDisabled.has(t)).length;
+            if (enabledCount <= 1) {
+                alert('⚠️ 至少需要保留一个启用的引导项，不能全部禁用！');
+                return;
+            }
+            bootDisabled.add(type);
+        }
+        renderBootList();
+    }
+
+    let bootVarsOriginal = [];
+
+    function renderBootVars(vars) {
+        const body = document.getElementById('boot-vars-body');
+        bootVarsOriginal = vars.map(v => ({ name: v.name, value: v.value }));
+        document.getElementById('btn-var-save').disabled = true;
+        document.getElementById('btn-var-reset').disabled = true;
+        if (!vars.length) {
+            body.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:20px 0;">无环境变量</td></tr>';
+            return;
+        }
+        body.innerHTML = '';
+        vars.forEach((v, i) => {
+            const tr = document.createElement('tr');
+            tr.dataset.index = i;
+            const nameCell = '<td>' + escHtml(v.name) + '</td>';
+            const valueCell = '<td><input type="text" class="boot-var-input" value="' + escHtml(v.value).replace(/"/g, '&quot;') + '" data-name="' + escHtml(v.name) + '" data-original="' + escHtml(v.value).replace(/"/g, '&quot;') + '" oninput="onVarInputChange(this)"></td>';
+            tr.innerHTML = nameCell + valueCell;
+            body.appendChild(tr);
+        });
+    }
+
+    function onVarInputChange(input) {
+        const original = input.dataset.original;
+        const tr = input.closest('tr');
+        if (input.value !== original) {
+            tr.classList.add('changed');
+        } else {
+            tr.classList.remove('changed');
+        }
+        const hasChanges = document.querySelectorAll('#boot-vars-body tr.changed').length > 0;
+        document.getElementById('btn-var-save').disabled = !hasChanges;
+        document.getElementById('btn-var-reset').disabled = !hasChanges;
+    }
+
+    function resetBootVars() {
+        const inputs = document.querySelectorAll('#boot-vars-body .boot-var-input');
+        inputs.forEach(input => {
+            input.value = input.dataset.original;
+            input.closest('tr').classList.remove('changed');
+        });
+        document.getElementById('btn-var-save').disabled = true;
+        document.getElementById('btn-var-reset').disabled = true;
+        appendLog('已还原环境变量修改', 'info');
+    }
+
+    async function saveBootVars() {
+        const changedRows = document.querySelectorAll('#boot-vars-body tr.changed');
+        if (!changedRows.length) return;
+        const changes = [];
+        changedRows.forEach(tr => {
+            const input = tr.querySelector('.boot-var-input');
+            changes.push({ name: input.dataset.name, value: input.value });
+        });
+        const desc = changes.map(c => c.name + '=' + c.value).join('\n');
+        if (!confirm('⚠️ 警告：修改 U-Boot 环境变量可能导致设备无法启动！\n\n确认要保存以下 ' + changes.length + ' 个变量的修改？\n\n' + desc + '\n\n保存后需重启生效。')) return;
+
+        const saveBtn = document.getElementById('btn-var-save');
+        const resetBtn = document.getElementById('btn-var-reset');
+        saveBtn.disabled = true;
+        resetBtn.disabled = true;
+        saveBtn.textContent = '⏳ 保存中...';
+
+        let success = 0, fail = 0;
+        for (const c of changes) {
+            try {
+                const resp = await fetch('/api/uboot_setenv', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: c.name, value: c.value })
+                });
+                if (resp.ok) {
+                    success++;
+                    appendLog('环境变量已保存: ' + c.name + '=' + c.value, 'success');
+                } else {
+                    fail++;
+                    const err = await resp.json().catch(() => ({ error: 'HTTP ' + resp.status }));
+                    appendLog('保存环境变量失败: ' + c.name + ' - ' + (err.error || ''), 'error');
+                }
+            } catch (e) {
+                fail++;
+                appendLog('保存环境变量失败: ' + c.name + ' - ' + e.message, 'error');
+            }
+        }
+
+        saveBtn.textContent = '⚠️ 保存修改';
+        if (fail === 0) {
+            alert('✅ 全部 ' + success + ' 个变量保存成功，重启后生效');
+            loadBootOrder();
+        } else {
+            alert('⚠️ ' + success + ' 个成功, ' + fail + ' 个失败，请查看日志');
+            saveBtn.disabled = false;
+            resetBtn.disabled = false;
+        }
+    }
+
+    function onBootDragStart(e) {
+        bootDragSrc = parseInt(e.currentTarget.dataset.index);
+        e.currentTarget.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function onBootDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        document.querySelectorAll('.boot-item').forEach(it => it.classList.remove('drag-over'));
+        e.currentTarget.classList.add('drag-over');
+    }
+
+    function onBootDrop(e) {
+        e.preventDefault();
+        const targetIdx = parseInt(e.currentTarget.dataset.index);
+        if (bootDragSrc === null || bootDragSrc === targetIdx) return;
+        const moved = bootOrder.splice(bootDragSrc, 1)[0];
+        bootOrder.splice(targetIdx, 0, moved);
+        renderBootList();
+        const bt = bootTypes.find(b => b.type === moved) || { label: moved, icon: '❓' };
+        appendLog('引导顺序已调整: ' + bt.icon + ' ' + bt.label + ' 移至第 ' + (targetIdx + 1) + ' 位', 'info');
+    }
+
+    function onBootDragEnd(e) {
+        bootDragSrc = null;
+        document.querySelectorAll('.boot-item').forEach(it => {
+            it.classList.remove('dragging');
+            it.classList.remove('drag-over');
+        });
+    }
+
+    async function resetUbootDefaults() {
+        if (!confirm('⚠️ 确定要将所有 U-Boot 环境变量还原为出厂值？当前所有自定义配置将丢失！')) return;
+        try {
+            const resp = await fetch('/api/uboot_reset', { method: 'POST' });
+            const result = await resp.json().catch(() => ({ error: 'HTTP ' + resp.status }));
+            if (!resp.ok || result.error) {
+                alert('❌ 还原出厂变量失败: ' + (result.error || '未知错误'));
+                appendLog('还原出厂变量失败: ' + (result.error || ''), 'error');
+                return;
+            }
+            alert('✅ ' + (result.message || '已还原出厂变量'));
+            appendLog('U-Boot 环境变量已还原为出厂值', 'success');
+            loadBootOrder();
+        } catch (e) {
+            alert('❌ 还原出厂变量失败: ' + e.message);
+            appendLog('还原出厂变量失败: ' + e.message, 'error');
+        }
+    }
+
+    async function saveBootOrder() {
+        const saveBtn = document.getElementById('btn-boot-save');
+        if (!bootOrder.length) return;
+        const enabledOrder = bootOrder.filter(t => !bootDisabled.has(t));
+        const bootcmd = buildBootcmd(enabledOrder);
+        const desc = bootOrder.map((t, i) => {
+            const bt = bootTypes.find(b => b.type === t) || { label: t, icon: '❓' };
+            const tag = bootDisabled.has(t) ? ' [已禁用]' : '';
+            return (i + 1) + '. ' + bt.icon + ' ' + bt.label + tag;
+        }).join('\n');
+        if (!confirm('确认保存以下启动顺序？\n\n' + desc + '\n\nbootcmd=' + bootcmd + '\n\n保存后需重启生效。')) return;
+        saveBtn.disabled = true;
+        saveBtn.textContent = '⏳ 保存中...';
+        try {
+            const resp = await fetch('/api/boot_order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bootcmd: bootcmd })
+            });
+            const result = await resp.json();
+            if (!resp.ok) {
+                appendLog('保存引导顺序失败: ' + (result.error || '未知错误'), 'error');
+                alert('保存失败: ' + (result.error || '未知错误'));
+            } else {
+                appendLog('引导顺序保存成功: bootcmd=' + bootcmd, 'success');
+                alert('✅ ' + (result.message || '保存成功'));
+            }
+        } catch (e) {
+            appendLog('保存引导顺序失败: ' + e.message, 'error');
+            alert('保存失败: ' + e.message);
+        }
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 保存顺序';
+    }
+
+    // ==================== Hardware Detection ====================
+    let storageDataCache = null;
+
+    function loadHardwareAll() {
+        loadCpuInfo();
+        loadNetworkInfo();
+        loadStorageInfo();
+    }
+
+    async function loadCpuInfo() {
+        const content = document.getElementById('cpu-content');
+        content.innerHTML = '<div class="storage-loading">⏳ 正在检测 CPU 与内存...</div>';
+        try {
+            const resp = await fetch('/api/cpu');
+            const d = await resp.json();
+            if (!resp.ok) {
+                content.innerHTML = '<div class="storage-loading">❌ 检测失败</div>';
+                return;
+            }
+            let html = '<div class="hw-grid">';
+            html += hwItem('型号', d.model || '-');
+            html += hwItem('核心数', d.cores + ' 核');
+            html += hwItem('架构', d.arch || '-');
+            html += hwItem('内核版本', d.kernel || '-');
+            html += hwItem('主机名', d.hostname || '-');
+            html += hwItem('运行时间', d.uptime || '-');
+            html += hwItem('温度', d.temp || '-');
+            var loadColor = d.loadAvg1 > d.cores ? 'hw-progress-red' : (d.loadAvg1 > d.cores * 0.7 ? 'hw-progress-orange' : 'hw-progress-green');
+            var loadPct = d.cores > 0 ? Math.min(d.loadAvg1 / d.cores * 100, 100) : 0;
+            html += hwItemProgress('负载 (1/5/15min)', d.loadAvg1.toFixed(2) + ' / ' + d.loadAvg5.toFixed(2) + ' / ' + d.loadAvg15.toFixed(2), loadPct, loadColor);
+            var cpuColor = d.cpuUsage > 90 ? 'hw-progress-red' : (d.cpuUsage > 70 ? 'hw-progress-orange' : 'hw-progress-green');
+            html += hwItemProgress('CPU 使用率', d.cpuUsage.toFixed(1) + '%', d.cpuUsage, cpuColor);
+            var memColor = d.memUsage > 90 ? 'hw-progress-red' : (d.memUsage > 70 ? 'hw-progress-orange' : 'hw-progress-blue');
+            html += hwItemProgress('内存使用', fmtBytes(d.memUsed) + ' / ' + fmtBytes(d.memTotal) + ' (' + d.memUsage.toFixed(1) + '%)', d.memUsage, memColor);
+            if (d.swapTotal > 0) {
+                var swapPct = d.swapTotal > 0 ? float64(d.swapUsed) / float64(d.swapTotal) * 100 : 0;
+                html += hwItemProgress('Swap 使用', fmtBytes(d.swapUsed) + ' / ' + fmtBytes(d.swapTotal) + ' (' + swapPct.toFixed(1) + '%)', swapPct, 'hw-progress-blue');
+            }
+            html += '</div>';
+            content.innerHTML = html;
+        } catch (e) {
+            content.innerHTML = '<div class="storage-loading">❌ 请求失败: ' + e.message + '</div>';
+        }
+    }
+
+    function hwItem(label, value) {
+        return '<div class="hw-item"><div class="hw-item-label">' + label + '</div><div class="hw-item-value">' + value + '</div></div>';
+    }
+
+    function hwItemProgress(label, value, pct, color) {
+        return '<div class="hw-item"><div class="hw-item-label">' + label + '</div><div class="hw-item-value">' + value + '</div><div class="hw-progress"><div class="hw-progress-fill ' + color + '" style="width:' + pct.toFixed(1) + '%"></div></div></div>';
+    }
+
+    function float64(v) { return v; }
+
+    async function loadNetworkInfo() {
+        const content = document.getElementById('network-content');
+        content.innerHTML = '<div class="storage-loading">⏳ 正在检测网络接口...</div>';
+        try {
+            const resp = await fetch('/api/network');
+            const d = await resp.json();
+            if (!resp.ok || d.error) {
+                content.innerHTML = '<div class="storage-loading">❌ ' + (d.error || '检测失败') + '</div>';
+                return;
+            }
+            if (!d.interfaces || !d.interfaces.length) {
+                content.innerHTML = '<div class="storage-loading">未检测到网络接口</div>';
+                return;
+            }
+            let html = '<table class="net-table"><thead><tr><th>接口</th><th>类型</th><th>状态</th><th>IP 地址</th><th>MAC 地址</th><th>速率</th><th>接收</th><th>发送</th></tr></thead><tbody>';
+            for (const iface of d.interfaces) {
+                var statusClass = iface.status === '已连接' ? 'net-status-up' : 'net-status-down';
+                var icon = iface.type === '无线' ? '📶' : iface.type === 'USB' ? '🔌' : '🔗';
+                html += '<tr>';
+                html += '<td>' + icon + ' ' + iface.name + '</td>';
+                html += '<td>' + iface.type + '</td>';
+                html += '<td class="' + statusClass + '">' + iface.status + '</td>';
+                html += '<td>' + (iface.ip || '-') + '</td>';
+                html += '<td style="font-family:monospace;font-size:11px;">' + (iface.mac || '-') + '</td>';
+                html += '<td>' + (iface.speed || '-') + '</td>';
+                html += '<td>' + fmtBytes(iface.rxBytes) + '</td>';
+                html += '<td>' + fmtBytes(iface.txBytes) + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            content.innerHTML = html;
+        } catch (e) {
+            content.innerHTML = '<div class="storage-loading">❌ 请求失败: ' + e.message + '</div>';
+        }
+    }
+
+    async function loadStorageInfo() {
+        const content = document.getElementById('storage-content');
+        content.innerHTML = '<div class="storage-loading">⏳ 正在检测存储设备...</div>';
+        document.getElementById('btn-storage-export').disabled = true;
+        try {
+            const resp = await fetch('/api/storage');
+            const data = await resp.json();
+            if (!resp.ok || data.error) {
+                content.innerHTML = '<div class="storage-loading">❌ ' + (data.error || '检测失败') + '</div>';
+                return;
+            }
+            storageDataCache = data.devices || [];
+            renderStorageInfo(storageDataCache);
+            if (storageDataCache.length) {
+                document.getElementById('btn-storage-export').disabled = false;
+            }
+        } catch (e) {
+            content.innerHTML = '<div class="storage-loading">❌ 请求失败: ' + e.message + '</div>';
+        }
+    }
+
+    function renderStorageInfo(devices) {
+        const content = document.getElementById('storage-content');
+        if (!devices.length) {
+            content.innerHTML = '<div class="storage-loading">未检测到存储设备</div>';
+            return;
+        }
+        let html = '';
+        for (let di = 0; di < devices.length; di++) {
+            const dev = devices[di];
+            const icon = dev.type === 'USB' ? '🔌' : dev.type === 'SSD' ? '💾' : '💿';
+            html += '<div class="storage-device">';
+            html += '<div class="storage-device-header">';
+            html += '<span class="storage-device-icon">' + icon + '</span>';
+            html += '<span class="storage-device-title">' + dev.device + '</span>';
+            html += '<div class="storage-device-meta">';
+            if (dev.model) html += '<span>型号: ' + dev.model + '</span>';
+            html += '<span>容量: ' + dev.size + '</span>';
+            html += '<span>类型: ' + dev.type + '</span>';
+            if (dev.transport) html += '<span>接口: ' + dev.transport + '</span>';
+            html += '</div></div>';
+
+            if (dev.partitions && dev.partitions.length) {
+                const partCount = dev.partitions.length;
+                html += '<div class="storage-section-title">📋 分区表 — ' + partCount + ' 个分区</div>';
+                html += '<div class="detail-group">';
+                html += '<span class="part-detail-toggle" onclick="toggleDetail(\'part-' + di + '\', this)">展开分区详情 ▸</span>';
+                html += '<div class="part-detail" id="part-' + di + '">';
+                html += '<table class="storage-part-table" style="margin-top:8px;"><thead><tr><th>#</th><th>起始</th><th>结束</th><th>大小</th><th>代码</th><th>名称</th></tr></thead><tbody>';
+                for (const p of dev.partitions) {
+                    html += '<tr><td>' + p.number + '</td><td>' + p.start + '</td><td>' + p.end + '</td><td>' + p.size + '</td><td>' + (p.code||'-') + '</td><td>' + (p.name||'-') + '</td></tr>';
+                }
+                html += '</tbody></table>';
+                html += '</div>';
+                html += '</div>';
+            }
+
+            html += '<div class="storage-section-title">🩺 SMART 健康状态</div>';
+            if (dev.smart.available) {
+                const healthClass = dev.smart.health === 'PASSED' ? 'smart-health-passed' : (dev.smart.health === 'FAILED' ? 'smart-health-failed' : '');
+                html += '<div class="storage-smart-grid">';
+                if (dev.smart.health) html += '<div class="smart-item"><div class="smart-label">健康状态</div><div class="smart-value ' + healthClass + '">' + dev.smart.health + '</div></div>';
+                if (dev.smart.protocol) html += '<div class="smart-item"><div class="smart-label">协议</div><div class="smart-value">' + dev.smart.protocol + '</div></div>';
+                if (dev.smart.model) html += '<div class="smart-item"><div class="smart-label">型号</div><div class="smart-value">' + dev.smart.model + '</div></div>';
+                if (dev.smart.serial) html += '<div class="smart-item"><div class="smart-label">序列号</div><div class="smart-value">' + dev.smart.serial + '</div></div>';
+                if (dev.smart.firmware) html += '<div class="smart-item"><div class="smart-label">固件版本</div><div class="smart-value">' + dev.smart.firmware + '</div></div>';
+                if (dev.smart.capacity) html += '<div class="smart-item"><div class="smart-label">容量</div><div class="smart-value">' + dev.smart.capacity + '</div></div>';
+                if (dev.smart.temp) html += '<div class="smart-item"><div class="smart-label">温度</div><div class="smart-value">' + dev.smart.temp + '</div></div>';
+                if (dev.smart.hours) html += '<div class="smart-item"><div class="smart-label">通电时长</div><div class="smart-value">' + dev.smart.hours + '</div></div>';
+                if (dev.smart.powerCycles) html += '<div class="smart-item"><div class="smart-label">通电次数</div><div class="smart-value">' + dev.smart.powerCycles + '</div></div>';
+                html += '</div>';
+
+                if (dev.smart.nvmeAttrs && dev.smart.nvmeAttrs.length) {
+                    html += '<div class="detail-group">';
+                    html += '<span class="smart-detail-toggle" onclick="toggleDetail(\'smart-' + di + '\', this)">展开 SMART 完整属性 (' + dev.smart.nvmeAttrs.length + ' 项) ▸</span>';
+                    html += '<div class="smart-detail" id="smart-' + di + '">';
+                    html += '<table class="smart-attrs-table"><thead><tr><th>属性</th><th>值</th></tr></thead><tbody>';
+                    for (const a of dev.smart.nvmeAttrs) {
+                        html += '<tr><td>' + a.key + '</td><td>' + a.value + '</td></tr>';
+                    }
+                    html += '</tbody></table>';
+                    html += '</div>';
+                    html += '</div>';
+                } else if (dev.smart.attrs && dev.smart.attrs.length) {
+                    html += '<div class="detail-group">';
+                    html += '<span class="smart-detail-toggle" onclick="toggleDetail(\'smart-' + di + '\', this)">展开 SMART 属性明细 (' + dev.smart.attrs.length + ' 项) ▸</span>';
+                    html += '<div class="smart-detail" id="smart-' + di + '">';
+                    html += '<table class="smart-attrs-table"><thead><tr><th>ID</th><th>属性名</th><th>值</th><th>最差</th><th>阈值</th><th>原始值</th></tr></thead><tbody>';
+                    for (const a of dev.smart.attrs) {
+                        html += '<tr><td>' + a.id + '</td><td>' + a.name + '</td><td>' + a.value + '</td><td>' + a.worst + '</td><td>' + a.thresh + '</td><td>' + a.raw + '</td></tr>';
+                    }
+                    html += '</tbody></table>';
+                    html += '</div>';
+                    html += '</div>';
+                }
+
+                if (dev.smart.rawFull) {
+                    html += '<div class="detail-group">';
+                    html += '<span class="smart-detail-toggle" onclick="toggleDetail(\'raw-' + di + '\', this)">展开 smartctl 原始输出 ▸</span>';
+                    html += '<div class="smart-detail" id="raw-' + di + '">';
+                    html += '<pre class="smart-raw-output">' + dev.smart.rawFull.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
+                    html += '</div>';
+                    html += '</div>';
+                }
+            } else {
+                html += '<div class="smart-unavailable">' + (dev.smart.error || 'SMART 信息不可用（设备可能不支持或未安装 smartmontools）') + '</div>';
+            }
+
+            html += '</div>';
+        }
+        content.innerHTML = html;
+    }
+
+    function toggleDetail(id, btn) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('visible');
+        if (btn) {
+            if (el.classList.contains('visible')) {
+                btn.innerHTML = btn.innerHTML.replace('▸', '▾');
+            } else {
+                btn.innerHTML = btn.innerHTML.replace('▾', '▸');
+            }
+        }
+    }
+
+    function exportStorageReport() {
+        if (!storageDataCache || !storageDataCache.length) { alert('暂无检测数据可导出'); return; }
+        let text = '存储检测报告\n';
+        text += '生成时间: ' + new Date().toLocaleString() + '\n';
+        text += '='.repeat(60) + '\n\n';
+        for (const dev of storageDataCache) {
+            text += '设备: ' + dev.device + '\n';
+            if (dev.model) text += '  型号:   ' + dev.model + '\n';
+            text += '  容量:   ' + dev.size + '\n';
+            text += '  类型:   ' + dev.type + '\n';
+            if (dev.transport) text += '  接口:   ' + dev.transport + '\n';
+
+            if (dev.partitions && dev.partitions.length) {
+                text += '\n  分区表 (' + dev.partitions.length + ' 个分区):\n';
+                for (const p of dev.partitions) {
+                    text += '    #' + p.number + '  ' + p.start + ' - ' + p.end + '  ' + p.size + '  ' + (p.code||'') + '  ' + (p.name||'') + '\n';
+                }
+            }
+
+            text += '\n  SMART 健康状态:\n';
+            if (dev.smart.available) {
+                if (dev.smart.health) text += '    健康状态:   ' + dev.smart.health + '\n';
+                if (dev.smart.protocol) text += '    协议:       ' + dev.smart.protocol + '\n';
+                if (dev.smart.model) text += '    型号:       ' + dev.smart.model + '\n';
+                if (dev.smart.serial) text += '    序列号:     ' + dev.smart.serial + '\n';
+                if (dev.smart.firmware) text += '    固件版本:   ' + dev.smart.firmware + '\n';
+                if (dev.smart.capacity) text += '    容量:       ' + dev.smart.capacity + '\n';
+                if (dev.smart.temp) text += '    温度:       ' + dev.smart.temp + '\n';
+                if (dev.smart.hours) text += '    通电时长:   ' + dev.smart.hours + '\n';
+                if (dev.smart.powerCycles) text += '    通电次数:   ' + dev.smart.powerCycles + '\n';
+                if (dev.smart.nvmeAttrs && dev.smart.nvmeAttrs.length) {
+                    text += '\n    NVMe SMART/Health Information:\n';
+                    for (const a of dev.smart.nvmeAttrs) {
+                        text += '      ' + (a.key+'').padEnd(36) + a.value + '\n';
+                    }
+                }
+                if (dev.smart.attrs && dev.smart.attrs.length) {
+                    text += '\n    SMART 属性明细:\n';
+                    text += '      ID   属性名                    值   最差  阈值  原始值\n';
+                    for (const a of dev.smart.attrs) {
+                        text += '      ' + String(a.id).padStart(3) + '  ' + (a.name||'').padEnd(24) + ' ' + String(a.value).padStart(4) + '  ' + String(a.worst).padStart(4) + '  ' + String(a.thresh).padStart(4) + '  ' + a.raw + '\n';
+                    }
+                }
+                if (dev.smart.rawFull) {
+                    text += '\n    smartctl 原始输出:\n' + dev.smart.rawFull + '\n';
+                }
+            } else {
+                text += '    ' + (dev.smart.error || 'SMART 信息不可用') + '\n';
+            }
+
+            text += '\n' + '-'.repeat(60) + '\n\n';
+        }
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const d = new Date();
+        const fname = 'storage_report_' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0') + '.txt';
+        a.href = url;
+        a.download = fname;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // ==================== Update Helper ====================
+    let updateFileInfo = null;
+
+    function showUpdateStatus(id, msg, type) {
+        const el = document.getElementById(id);
+        el.textContent = msg;
+        el.className = 'update-status visible ' + type;
+    }
+
+    function hideUpdateStatus(id) {
+        const el = document.getElementById(id);
+        el.className = 'update-status';
+    }
+
+    function onProxyToggle() {
+        var enabled = document.getElementById('update-proxy-enable').checked;
+        document.getElementById('update-proxy').disabled = !enabled;
+    }
+
+    let updateSelectedUrl = '';
+
+    async function checkUpdate() {
+        var proxy = '';
+        if (document.getElementById('update-proxy-enable').checked) {
+            proxy = document.getElementById('update-proxy').value.trim();
+            if (!proxy) { showUpdateStatus('update-net-status', '⚠️ 已启用代理但未填写代理地址', 'warning'); return; }
+        }
+        var statusEl = 'update-net-status';
+        const dlBtn = document.getElementById('btn-update-download');
+        dlBtn.disabled = true;
+        document.getElementById('update-version-list').style.display = 'none';
+        showUpdateStatus(statusEl, '⏳ 正在检测更新...', 'info');
+
+        try {
+            const resp = await fetch('/api/update_check?proxy=' + encodeURIComponent(proxy));
+            const data = await resp.json();
+            if (data.error) {
+                showUpdateStatus(statusEl, '⚠️ ' + data.error, 'warning');
+                return;
+            }
+            if (data.allAssets && data.allAssets.length) {
+                renderVersionCards(data.allAssets, data.latestVersion);
+                document.getElementById('update-version-list').style.display = 'block';
+            }
+            if (data.hasUpdate) {
+                showUpdateStatus(statusEl, '✅ 发现新版本: ' + data.latestVersion + '（当前: v{{.BuildTime}}），请在下方选择版本后点击下载', 'success');
+            } else if (data.latestVersion) {
+                showUpdateStatus(statusEl, '✓ 当前版本 v{{.BuildTime}} 已是最新，远程最新: ' + data.latestVersion + '（共 ' + data.versionCount + ' 个版本）', 'info');
+            }
+        } catch (e) {
+            showUpdateStatus(statusEl, '❌ 请求失败: ' + e.message, 'error');
+        }
+    }
+
+    function renderVersionCards(assets, latestVersion) {
+        var container = document.getElementById('update-version-cards');
+        var html = '';
+        var currentNorm = '{{.BuildTime}}'.replace(/\./g, '');
+        for (var i = 0; i < assets.length; i++) {
+            var a = assets[i];
+            var isSelected = (i === 0) ? 'selected' : '';
+            var badges = '';
+            if (a.version === latestVersion) badges += '<span class="ver-tag-sm ver-latest">最新</span>';
+            if (a.version === currentNorm) { badges += '<span class="ver-tag-sm ver-current">当前</span>'; isSelected = ''; }
+            var sizeText = a.size ? ' (' + (a.size/1048576).toFixed(1) + 'MB)' : '';
+            html += '<div class="ver-card ' + isSelected + '" data-url="' + a.downloadUrl + '" onclick="selectVersion(this)">';
+            html += '<span>' + a.version + sizeText + '</span>' + badges;
+            html += '</div>';
+        }
+        container.innerHTML = html;
+        var first = container.querySelector('.ver-card.selected');
+        if (first) {
+            updateSelectedUrl = first.dataset.url;
+            document.getElementById('btn-update-download').disabled = false;
+        }
+    }
+
+    function selectVersion(el) {
+        document.querySelectorAll('#update-version-cards .ver-card').forEach(function(c) { c.classList.remove('selected'); });
+        el.classList.add('selected');
+        updateSelectedUrl = el.dataset.url;
+        document.getElementById('btn-update-download').disabled = false;
+    }
+
+    function fmtSpeed(bytesPerSec) {
+        if (bytesPerSec <= 0) return '0 B/s';
+        if (bytesPerSec < 1024) return bytesPerSec.toFixed(0) + ' B/s';
+        if (bytesPerSec < 1048576) return (bytesPerSec/1024).toFixed(1) + ' KB/s';
+        return (bytesPerSec/1048576).toFixed(1) + ' MB/s';
+    }
+
+    function fmtEta(seconds) {
+        if (seconds <= 0 || !isFinite(seconds)) return '--';
+        if (seconds < 60) return Math.ceil(seconds) + ' 秒';
+        if (seconds < 3600) return Math.floor(seconds/60) + ' 分 ' + Math.ceil(seconds%60) + ' 秒';
+        return Math.floor(seconds/3600) + ' 时 ' + Math.floor((seconds%3600)/60) + ' 分';
+    }
+
+    function fmtBytes(n) {
+        if (n <= 0) return '0 B';
+        if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+        if (n < 1073741824) return (n/1048576).toFixed(1) + ' MB';
+        return (n/1073741824).toFixed(2) + ' GB';
+    }
+
+    let updateDownloading = false;
+    let updateFlashing = false;
+    let updateReader = null;
+
+    async function downloadUpdate() {
+        if (updateDownloading) {
+            cancelUpdateDownload();
+            return;
+        }
+        var dlBtn = document.getElementById('btn-update-download');
+        var url = updateSelectedUrl;
+        if (!url) { showUpdateStatus('update-net-status', '❌ 请先选择一个版本', 'error'); return; }
+
+        var proxy = '';
+        if (document.getElementById('update-proxy-enable').checked) {
+            proxy = document.getElementById('update-proxy').value.trim();
+            if (proxy && url.indexOf('http') === 0) {
+                url = proxy + url;
+            }
+        }
+
+        updateDownloading = true;
+        dlBtn.disabled = false;
+        dlBtn.textContent = '🚫 取消下载';
+        dlBtn.classList.add('btn-cancel');
+        document.getElementById('update-progress-bar').classList.add('visible');
+        document.getElementById('update-bar-fill').style.width = '0%';
+        showUpdateStatus('update-net-status', '⏳ 正在下载更新...', 'info');
+
+        try {
+            var resp = await fetch('/api/update_download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+
+            updateReader = resp.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+
+            while (true) {
+                var chunk = await updateReader.read();
+                if (chunk.done) break;
+                buffer += decoder.decode(chunk.value, { stream: true });
+                var lines = buffer.split('\n');
+                buffer = lines.pop();
+                var eventType = '';
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i];
+                    if (line.startsWith('event: ')) {
+                        eventType = line.slice(7).trim();
+                    } else if (line.startsWith('data: ') && eventType) {
+                        var data = JSON.parse(line.slice(6));
+                        handleUpdateSSE(eventType, data, dlBtn);
+                        eventType = '';
+                    }
+                }
+            }
+        } catch (e) {
+            if (updateDownloading) {
+                showUpdateStatus('update-net-status', '❌ 请求失败: ' + e.message, 'error');
+            }
+        } finally {
+            updateDownloading = false;
+            updateReader = null;
+            if (!updateFlashing) {
+                dlBtn.classList.remove('btn-cancel');
+                dlBtn.textContent = '⬇️ 下载并安装';
+                dlBtn.disabled = !updateSelectedUrl;
+            }
+        }
+    }
+
+    function cancelUpdateDownload() {
+        if (updateFlashing) {
+            showUpdateStatus('update-net-status', '⚠️ 写入固件阶段不可取消，请等待完成', 'warning');
+            return;
+        }
+        if (updateReader) {
+            updateReader.cancel();
+            updateReader = null;
+        }
+        fetch('/api/update_cancel', { method: 'POST' });
+        updateDownloading = false;
+        showUpdateStatus('update-net-status', '🚫 下载已取消', 'warning');
+        document.getElementById('update-progress-bar').classList.remove('visible');
+    }
+
+    function handleUpdateSSE(event, data, dlBtn) {
+        if (event === 'progress') {
+            var pct = data.percent || 0;
+            document.getElementById('update-bar-fill').style.width = pct.toFixed(1) + '%';
+            var phaseText = data.phase === 'flashing' ? '写入 SPI Flash' : '下载镜像';
+            var totalText = data.total > 0 ? fmtBytes(data.total) : '未知';
+            var writtenText = fmtBytes(data.written || 0);
+            var speedText = fmtSpeed(data.speed || 0);
+            var etaText = fmtEta(data.eta || 0);
+            var msg = '⏳ ' + phaseText + '：' + writtenText + ' / ' + totalText +
+                '  |  速度: ' + speedText + '  |  剩余: ' + etaText +
+                '  |  ' + pct.toFixed(1) + '%';
+            showUpdateStatus('update-net-status', msg, 'info');
+            if (data.phase === 'flashing') {
+                updateFlashing = true;
+                dlBtn.disabled = true;
+                dlBtn.classList.remove('btn-cancel');
+                dlBtn.textContent = '⏳ 写入中...';
+            }
+        } else if (event === 'done') {
+            updateFlashing = false;
+            document.getElementById('update-bar-fill').style.width = '100%';
+            showUpdateStatus('update-net-status', '✅ ' + data.message, 'success');
+            fetch('/api/uboot_reset', { method: 'POST' })
+                .then(function(r) { return r.json().catch(function() { return {}; }); })
+                .then(function(result) {
+                    if (!result.error) {
+                        appendLog('更新完成，已自动还原出厂环境变量', 'success');
+                        alert('✅ 更新完成！\n\n环境变量已自动还原为出厂默认值。\n\n引导顺序已恢复为默认顺序（USB → eMMC → NVMe → SATA），如需调整请前往「引导顺序」页面按需配置。');
+                    } else {
+                        appendLog('更新完成，但环境变量还原失败: ' + (result.error || '未知错误'), 'warn');
+                        alert('✅ 更新完成！\n\n⚠️ 环境变量自动还原失败，请手动前往「引导顺序」页面点击「恢复出厂变量」。');
+                    }
+                })
+                .catch(function(e) {
+                    appendLog('更新完成，但环境变量还原请求失败: ' + e.message, 'warn');
+                    alert('✅ 更新完成！\n\n⚠️ 环境变量自动还原失败，请手动前往「引导顺序」页面点击「恢复出厂变量」。');
+                });
+        } else if (event === 'error') {
+            updateFlashing = false;
+            document.getElementById('update-progress-bar').classList.remove('visible');
+            showUpdateStatus('update-net-status', '❌ ' + data.error, 'error');
+        }
+    }
+
+    function onUpdateFileSelected(input) {
+        const file = input.files[0];
+        if (!file) {
+            updateFileInfo = null;
+            document.getElementById('update-file-info').textContent = '';
+            document.getElementById('btn-update-upload').disabled = true;
+            return;
+        }
+        updateFileInfo = file;
+        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+        document.getElementById('update-file-info').textContent = '📄 ' + file.name + ' (' + sizeMB + ' MB)';
+        document.getElementById('btn-update-upload').disabled = false;
+        hideUpdateStatus('update-upload-status');
+    }
+
+    async function uploadUpdate() {
+        if (!updateFileInfo) return;
+        const uploadBtn = document.getElementById('btn-update-upload');
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = '⏳ 上传中...';
+        showUpdateStatus('update-upload-status', '⏳ 正在上传 ' + updateFileInfo.name + '...', 'info');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', updateFileInfo);
+            const resp = await fetch('/api/update_upload', { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                showUpdateStatus('update-upload-status', '✅ ' + data.message, 'success');
+                try {
+                    var resetResp = await fetch('/api/uboot_reset', { method: 'POST' });
+                    var resetResult = await resetResp.json().catch(() => ({}));
+                    if (resetResp.ok && !resetResult.error) {
+                        appendLog('更新完成，已自动还原出厂环境变量', 'success');
+                        alert('✅ 更新完成！\n\n环境变量已自动还原为出厂默认值。\n\n引导顺序已恢复为默认顺序（USB → eMMC → NVMe → SATA），如需调整请前往「引导顺序」页面按需配置。');
+                    } else {
+                        appendLog('更新完成，但环境变量还原失败: ' + (resetResult.error || '未知错误'), 'warn');
+                        alert('✅ 更新完成！\n\n⚠️ 环境变量自动还原失败，请手动前往「引导顺序」页面点击「恢复出厂变量」。');
+                    }
+                } catch (e) {
+                    appendLog('更新完成，但环境变量还原请求失败: ' + e.message, 'warn');
+                    alert('✅ 更新完成！\n\n⚠️ 环境变量自动还原失败，请手动前往「引导顺序」页面点击「恢复出厂变量」。');
+                }
+            } else {
+                showUpdateStatus('update-upload-status', '❌ 更新失败: ' + (data.error || '未知错误'), 'error');
+            }
+        } catch (e) {
+            showUpdateStatus('update-upload-status', '❌ 请求失败: ' + e.message, 'error');
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '⬆️ 上传并更新';
+        }
+    }
+
+    (function() {
+        var area = document.getElementById('update-upload-area');
+        if (!area) return;
+        area.addEventListener('dragover', function(e) { e.preventDefault(); area.classList.add('dragover'); });
+        area.addEventListener('dragleave', function(e) { e.preventDefault(); area.classList.remove('dragover'); });
+        area.addEventListener('drop', function(e) {
+            e.preventDefault();
+            area.classList.remove('dragover');
+            var input = document.getElementById('update-file-input');
+            if (e.dataTransfer.files.length) {
+                input.files = e.dataTransfer.files;
+                onUpdateFileSelected(input);
+            }
+        });
+    })();
+
+    // ==================== Utilities ====================
+    function showProgress() { document.getElementById('progress-container').style.display = 'block'; }
+    function hideProgress() { document.getElementById('progress-container').style.display = 'none'; }
+    function resetBtn() { const b = document.getElementById('btn-flash'); b.disabled = false; b.textContent = "⚡ 开始刷写"; }
+    function showResult(msg, type) { const a = document.getElementById('result-area'); a.style.display = 'block'; a.className = type; a.textContent = msg; }
+    function fmtBytes(b) {
+        if (!b) return '0 B';
+        const k = 1024, s = ['B','KB','MB','GB','TB'];
+        const i = Math.floor(Math.log(b) / Math.log(k));
+        return (b / Math.pow(k, i)).toFixed(1) + ' ' + s[i];
+    }
+
+    window.onload = function() {
+        const advCheck = document.getElementById('adv-mode-check');
+        advCheck.checked = false;
+        document.getElementById('flash-panel').classList.remove('advanced');
+        document.getElementById('log-panel').classList.remove('visible');
+        document.getElementById('firmware-file').value = '';
+        document.getElementById('update-proxy-enable').checked = false;
+        document.getElementById('update-proxy').disabled = true;
+        document.getElementById('update-proxy').value = '';
+        document.getElementById('update-version-list').style.display = 'none';
+        updateSelectedUrl = '';
+        loadDevices();
+        renderFwDownloads();
+    };
+</script>
+</body>
+</html>
