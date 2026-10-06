@@ -193,8 +193,6 @@
 
 	vcc5v0_host: regulator-vcc5v0-host {
 		compatible = "regulator-fixed";
-		enable-active-high;
-		gpio = <&nca9555 0 GPIO_ACTIVE_HIGH>;
 		regulator-name = "vcc5v0_host";
 		regulator-always-on;
 		regulator-boot-on;

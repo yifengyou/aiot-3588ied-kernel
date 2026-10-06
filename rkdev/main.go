@@ -3258,7 +3258,7 @@ func parseSmartAttrs(text string) []SmartAttr {
 // ============ Update Helper ============
 
 const (
-	githubReleaseAPI = "https://api.github.com/repos/yifengyou/BDY_G98_RK3588/releases/tags/spi_recovery_uboot2026"
+	githubReleaseAPI = "https://api.github.com/repos/yifengyou/aiot-3588ied/releases/tags/spi_recovery_uboot2026"
 	updateTmpFile    = "/tmp/update.img"
 	updateTargetDev  = "/dev/mtdblock0"
 )
