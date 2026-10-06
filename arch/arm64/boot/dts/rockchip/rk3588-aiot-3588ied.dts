@@ -219,7 +219,7 @@
 	vcc3v3_sd_s0: regulator-vcc3v3-sd-s0 {
 		compatible = "regulator-fixed";
 		enable-active-high;
-		gpio = <&gpio3 RK_PB1 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&sd_s0_pwren>;
 		regulator-name = "vcc3v3_sd_s0";
@@ -534,7 +534,6 @@
 &i2c8 {
 	pinctrl-0 = <&i2c8m2_xfer>;
 	pinctrl-names = "default";
-	status = "okay";
 };
 
 &i2s0_8ch {
@@ -602,15 +601,15 @@
 };
 
 &pcie2x1l1 {
-	reset-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc_3v3_pcie20>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pcie2_1_rst>;
-	status = "okay";
+	status = "disabled";
 };
 
 &pcie2x1l2 {
-	status = "disabled";
+	reset-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc_3v3_pcie20>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie2_2_rst>;
+	status = "okay";
 };
 
 &pcie30phy {
@@ -681,7 +680,7 @@
 			rockchip,pins = <3 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		pcie2_1_rst: pcie2-1-rst {
+		pcie2_2_rst: pcie2-2-rst {
 			rockchip,pins = <1 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
@@ -698,7 +697,7 @@
 
 	sdmmc {
 		sd_s0_pwren: sd-s0-pwren {
-			rockchip,pins = <3 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
@@ -1155,10 +1154,9 @@
 };
 
 &usbdp_phy0 {
-	mode-switch;
 	orientation-switch;
-	sbu1-dc-gpios = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
-	sbu2-dc-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
+	sbu1-dc-gpios = <&gpio4 RK_PA1 GPIO_ACTIVE_HIGH>;
+	sbu2-dc-gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 
 	port {
