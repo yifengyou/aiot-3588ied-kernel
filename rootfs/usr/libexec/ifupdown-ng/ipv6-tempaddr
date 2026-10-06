@@ -1,0 +1,18 @@
+#!/bin/sh
+: "${PROCFS_ROOT:=/proc}"
+
+start() {
+	printf '%s\n' 2 > "$PROCFS_ROOT/sys/net/ipv6/conf/$IFACE/use_tempaddr"
+}
+
+stop() {
+	printf '%s\n' 0 > "$PROCFS_ROOT/sys/net/ipv6/conf/$IFACE/use_tempaddr"
+}
+
+[ -z "$VERBOSE" ] || set -x
+
+case "$PHASE" in
+pre-up) start $impl ;;
+pre-down) stop $impl ;;
+*) ;;
+esac

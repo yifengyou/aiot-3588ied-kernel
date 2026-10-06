@@ -1,0 +1,450 @@
+#!/bin/sh
+# shellcheck shell=sh
+# shellcheck disable=SC3043
+
+PREFIX=/usr
+: "${LIBDIR:=$PREFIX/lib}"
+# shellcheck source=/dev/null
+. "$LIBDIR/libalpine.sh"
+
+version=3.22.0-r0
+files_to_move="boot efi apks syslinux.cfg .alpine-release"
+read_only_mounts=
+umounts=
+uninstalls=
+destdir=
+
+arch=${APK_ARCH:-$(apk --print-arch 2>/dev/null || uname -m)}
+
+default_bootloader() {
+	case "$arch" in
+		x86|x86_64) echo syslinux;;
+		*) echo none;;
+	esac
+}
+
+: "${BOOTLOADER:=$(default_bootloader)}"
+
+cleanup_tmpdata() {
+	if [ -d "$destdir" ] && [ -d "$destdir/.new" ]; then
+		rm -rf "$destdir"/.new
+	fi
+}
+
+cleanup_mounts() {
+	local i=
+	cd_assert /
+	sync
+	sleep 1
+	for i in $read_only_mounts; do
+		mount -o remount,ro "$i" || echo "Warning: Failed to remount as read-only. Is modloop mounted?"
+	done
+	read_only_mounts=""
+	if [ -n "$umounts" ]; then
+		# shellcheck disable=SC2086
+		umount $umounts
+		umounts=""
+	fi
+}
+
+cleanup_installs() {
+	if [ -n "$uninstalls" ]; then
+		apk del --quiet $uninstalls
+		uninstalls=""
+	fi
+}
+
+cleanup() {
+	cleanup_tmpdata
+	cleanup_mounts
+	cleanup_installs
+}
+
+trap cleanup EXIT
+trap "exit 2" INT TERM QUIT
+
+# find device for mountpoint
+find_dev() {
+	local mnt="${1%/}" # strip trailing /
+	awk "\$2 == \"$mnt\" {print \$1}" /proc/mounts
+}
+
+# check if given device is on usb bus
+on_usb_bus() {
+	local dev="$1"
+	local sysdev
+	[ -e /sys/block/"$dev" ] || return 1
+	sysdev="$(readlink -f /sys/block/"$dev"/device)"
+	test "${sysdev##*/usb[0-9]}" != "$sysdev"
+}
+
+# check if given dir is read-only
+is_read_only() {
+	local tmpfile
+	tmpfile="$(mktemp -p "$1" 2>/dev/null)"
+	[ -z "$tmpfile" ] && return 0
+	rm -f "$tmpfile"
+	return 1
+}
+
+# find what disk this partition belongs to
+find_disk_dev() {
+	local i sysfsname
+	sysfsname="${1#/dev/}"
+	sysfsname=$(printf '%s\n' "$sysfsname" | sed 's:/:!:g')	# cciss/c0d0 -> cciss!c0d0
+	if [ -e /sys/block/"$sysfsname" ]; then
+		printf "/dev/%s\n" "$(printf '%s\n' "$sysfsname" | sed 's:!:/:g')"
+		return 0
+	fi
+	for i in /sys/block/*/"$sysfsname"; do
+		[ -e "$i" ] || continue
+		echo "$i" | cut -d/ -f4 | sed -e 's:!:/:g' -e 's:^:/dev/:'
+		return 0
+	done
+	return 1
+}
+
+find_syslinux_cfg() {
+	# find where new syslinux.cfg is
+	for i in boot/syslinux/syslinux.cfg syslinux.cfg; do
+		if [ -e "$1"/$i ]; then
+			echo "$i"
+			return 0
+		fi
+	done
+	return 1
+}
+
+fix_syslinux_kernel() {
+	local destdir="$1" syslinux_cfg="$2" old="$3" new="$4"
+	echo "Fixing $syslinux_cfg: kernel $old -> $new"
+	sed -i -e "/^\s*[Kk][Ee][Rr][Nn][Ee][Ll]\s/s|$old|$new|" \
+		"$destdir/$syslinux_cfg"
+}
+
+fix_syslinux_initrd() {
+	local destdir="$1" syslinux_cfg="$2" old="$3" new="$4"
+	echo "Fixing $syslinux_cfg: initrd $old -> $new"
+	sed -i -e "/^\s*[Ii][Nn][Ii][Tt][Rr][Dd]\s/s|$old|$new|" \
+		-e "/^\s*[Aa][Pp][Pp][Ee][Nn][Dd]\s/s|initrd=$old|initrd=$new|" \
+		"$destdir/$syslinux_cfg"
+}
+
+check_syslinux_config() {
+	local destdir="$1" syslinux_cfg="$2"
+	local i k f initrds line fname flavor new
+	if [ -z "$syslinux_cfg" ]; then
+		die "Could not find any syslinux.cfg. Aborting"
+	fi
+
+	# kernels
+	while IFS= read -r i; do
+		[ -n "$i" ] || continue
+		k="${destdir%/}/${i#/}"
+		f=${k##*/}
+
+		if [ -e "$k" ] && [ "${f#vmlinuz}" != "$f" ]; then
+			continue
+		fi
+
+		if [ -e "${k%/*}"/vmlinuz-"$f" ] && [ -n "$fix_syslinux_cfg" ]; then
+			fix_syslinux_kernel "$destdir" "$syslinux_cfg" "$i" "${i%/*}"/vmlinuz-"$f"
+		elif ! [ -e "$k" ]; then
+			echo "Warning: $syslinux_cfg: kernel $k  was not found"
+			printf '         Run %s -f -c "%s" to fix\n' "$0" "$destdir"
+		fi
+	done <<-EOF
+	$(awk 'tolower($1) == "kernel" {print $2}' "$destdir"/"$syslinux_cfg")
+	EOF
+
+	#initramfs
+	initrds=$(awk 'tolower($1) == "initrd" {gsub(",", " "); for (i=2; i<=NF; i++) print $i}' \
+			"$destdir"/"$syslinux_cfg")
+	while IFS= read -r line; do
+		for i in $line; do
+			case $i in
+				initrd=*) initrds=${i#initrd=};;
+			esac
+		done
+	done <<-EOF
+	$(awk 'tolower($1) == "append" {print $0}' "$destdir"/"$syslinux_cfg")
+	EOF
+
+	for i in $initrds; do
+		if [ -e "$destdir"/"$i" ]; then
+			continue
+		fi
+		fname=${i##*/}
+		flavor=${fname%.gz}
+
+		new=${i%/*}/initramfs-$flavor
+		if [ -e "$destdir"/"$new" ] && [ -n "$fix_syslinux_cfg" ]; then
+			fix_syslinux_initrd "$destdir" "$syslinux_cfg" "$i" "$new"
+		else
+			echo "Warning: initrd $i was not found. System will likely not boot"
+			printf '         Run %s -f -c "%s" to fix\n' "$0" "$destdir"
+		fi
+	done
+}
+
+check_syslinux() {
+	syslinux_cfg=${syslinux_cfg:-$(find_syslinux_cfg "$destdir")}
+	[ -n "$syslinux_cfg" ] && vecho "Found $syslinux_cfg"
+	check_syslinux_config "$destdir" "$syslinux_cfg"
+}
+
+install_syslinux() {
+	local dest="$1" parent_dev="$2"
+	echo "Making $dest bootable..."
+
+	if ! [ -x "$(which syslinux)" ]; then
+		apk add --quiet syslinux || die "Failed to install syslinux"
+		uninstalls="syslinux"
+	fi
+
+	# we need to unmount the device before we can run syslinux
+	cleanup_mounts
+	fsync "$dest"
+	syslinux "$dest"
+
+	if [ -b "$parent_dev" ]; then
+		dd if=/usr/share/syslinux/mbr.bin of="$parent_dev" status=none
+	else
+		echo "Warning: Could not find the parent device for $dest"
+	fi
+}
+
+install_bootloader() {
+	local dest="$1" parent_dev="$2"
+	case "$BOOTLOADER" in
+		none) ;;
+		syslinux) install_syslinux "$dest" "$parent_dev" ;;
+		*) die "Bootloader \"$BOOTLOADER\" not supported" ;;
+	esac
+}
+
+version_check() {
+	local new_dir="$1" old_dir="$2"
+	# check if its same version
+	local to_version
+	to_version="$(cat "$new_dir"/.alpine-release)"
+	if [ -n "$upgrade" ] && [ -e "$old_dir"/.alpine-release ]; then
+		local from_version
+		from_version="$(cat "$old_dir"/.alpine-release)"
+		if [ -z "$force" ] && [ -n "$to_version" ] && [ "$from_version" = "$to_version" ]; then
+			die "Source and target seems to have same version ($from_version). Aborting."
+		fi
+		echo "Upgrading $dest from $from_version to $to_version"
+	else
+		echo "Installing $dest to $to_version"
+	fi
+}
+
+usage() {
+	cat <<-__EOF__
+		$PROGRAM $version
+		usage: $PROGRAM [-fhUusv] SOURCE [DEST]
+		       $PROGRAM -c DIR
+
+		Copy the contents of SOURCE to DEST and make DEST bootable.
+
+		SOURCE can be a directory or a ISO image. DEST can be a mounted directory
+		or a device. If DEST is ommitted /media/usb will be used.
+
+		Options:
+		 -f  Force overwrite existing files. Will overwrite syslinux.cfg if upgrade.
+		 -h  Show this help.
+		 -k  fix kernel and initrd name in syslinux.cfg if needed.
+		 -U  Replace current alpine_dev in syslinux.cfg with UUID if UUID found.
+		 -u  Upgrade mode. Keep existing syslinux.cfg and don't run bootloader.
+		 -s  Force run bootloader, even if upgrade mode.
+		 -v  Verbose mode. Display whats going on.
+
+		 -c  Check syslinux.cfg in destination DIR. Use with -f to fix.
+
+		Environment:
+		 BOOTLOADER=syslinux|none  Defaults to syslinux on x86, none elsewhere.
+
+	__EOF__
+	exit 1
+}
+
+while getopts "c:fhkUusv" opt; do
+	case "$opt" in
+	c) check_syslinux="$OPTARG";;
+	f) force=1; fix_syslinux_cfg=1;;
+	h) usage;;
+	k) fix_syslinux_cfg=1;;
+	U) replace_alpine_dev=1;;
+	u) upgrade=1;;
+	s) force_bootloader=1;;
+	v) VERBOSE=1; export VERBOSE;;
+	\?) usage;;
+	*) usage;;
+	esac
+done
+
+shift $((OPTIND - 1))
+
+src=${1}
+dest=${2:-/media/usb}
+
+if [ -n "$check_syslinux" ]; then
+	destdir="$check_syslinux"
+	check_syslinux
+	exit 0
+fi
+
+[ -z "$src" ] && usage
+
+# find target device
+if [ -d "$dest" ]; then
+	dest=${dest%/} # strip trailing /
+	if ! awk '{print $2}' /proc/mounts | grep -q "^$dest\$"; then
+		mount "$dest" || die "Failed to mount $dest"
+		umounts="$umounts $dest"
+	elif [ -n "$force_bootloader" ] && [ "$BOOTLOADER" != none ]; then
+		die "Cannot run bootloader on mounted device"
+	else
+		nosyslinux=1
+	fi
+	destdir="$dest"
+	dest=$(find_dev "$destdir")
+elif [ -b "$dest" ]; then
+	destdir="/media/${dest##*/}"
+	mkdir -p "$destdir"
+	mount "$dest" "$destdir" || die "Failed to mount $dest on $destdir"
+	umounts="$umounts $destdir"
+fi
+
+# remount as rw if needed
+if is_read_only "$destdir"; then
+	vecho "Remounting $destdir as read/write"
+	mount -o remount,rw "$dest" || die "Failed to remount $destdir as rw"
+	read_only_mounts="$read_only_mounts $destdir"
+fi
+
+# fish out label, uuid and type
+eval "$(blkid "$dest" | cut -d: -f2-)"
+
+vecho "Using $dest as target (mounted on $destdir)"
+
+# find parent device (i.e sda)
+dev="$dest"
+while [ -L "$dev" ]; do
+	dev=$(readlink -f "$dev")
+done
+parent_dev=$(find_disk_dev "$dev")
+
+# check if this files exist and not in upgrade mode
+if [ -z "$upgrade" ] && [ -z "$force" ]; then
+	for i in $files_to_move; do
+		[ -e "$destdir"/"$i" ] && die "$destdir/$i already exists. Use -u to upgrade."
+	done
+fi
+
+# remove partial upgrades if any
+rm -rf "$destdir"/.new "$destdir"/.old
+mkdir -p "$destdir"/.new || die "Failed to create $destdir/.new"
+
+# copy data from source to .new
+if [ -f "$src"/.alpine-release ]; then
+	srcdir="${src%/}"
+	version_check "$srcdir" "$destdir"
+	for i in $files_to_move; do
+		if [ -e "$srcdir"/"$i" ]; then
+			vecho "Copying $srcdir/$i to $destdir/.new/"
+			cp -dR "$srcdir"/"$i" "$destdir"/.new/
+		fi
+	done
+else
+	vecho "Extracting $src to $destdir/.new/"
+	case "$src" in
+	https://*|http://*|ftp://*)
+		${WGET:-wget} -O - "$src" | (cd_assert "$destdir"/.new; exec ${UNISO:-uniso}) \
+			|| die "Failed to download or extract $src"
+		echo ""
+		;;
+	*)
+		(cd_assert "$destdir"/.new; exec ${UNISO:-uniso}) < "$src" \
+			|| die "Failed to download or extract $src"
+		;;
+	esac
+	version_check "$destdir/.new" "$destdir"
+fi
+
+if [ "$BOOTLOADER" = syslinux ]; then
+	# find where new syslinux.cfg is
+	syslinux_cfg=$(find_syslinux_cfg "$destdir"/.new)
+	[ -n "$syslinux_cfg" ] && vecho "Found $syslinux_cfg"
+
+	# abort early in case unexpected trouble
+	if [ -z "$syslinux_cfg" ]; then
+		die "Could not find any syslinux.cfg on new iso?"
+	fi
+fi
+
+# make sure files are really there before we replace existing
+vecho "Flushing cache..."
+sync
+
+vecho "Replacing existing files..."
+mkdir -p "$destdir"/.old || die "Failed to create $destdir/.old"
+
+# move current files to .old
+for i in $files_to_move; do
+	if [ -e "$destdir"/"$i" ]; then
+		mv "$destdir"/"$i" "$destdir"/.old/ || die "Failed to move $destdir/$i to $destdir/.old/"
+	fi
+done
+
+# keep any existing syslinux.cfg
+if [ "$BOOTLOADER" = syslinux ]; then
+	if [ -e "$destdir"/.old/"$syslinux_cfg" ]; then
+		mv "$destdir"/.old/"$syslinux_cfg" "$destdir"/.new/"$syslinux_cfg"
+	elif [ -e "$destdir"/.old/syslinux.cfg ] \
+			&& [ -e "$destdir"/.new/boot/syslinux/syslinux.cfg ]; then
+		echo "Warning: moving syslinux.cfg to boot/syslinux/syslinux.cfg" >&2
+		mv "$destdir"/.old/syslinux.cfg "$destdir"/.new/boot/syslinux
+		if [ -z "$force_bootloader" ]; then
+			echo "         You might need run: syslinux $dest" >&2
+		fi
+	fi
+fi
+
+# move .new to current
+for i in $files_to_move; do
+	if [ -e "$destdir"/.new/"$i" ]; then
+		mv "$destdir"/.new/"$i" "$destdir"/ \
+			|| die "Failed to move $destdir/.new/ to $destdir"
+	fi
+done
+
+if [ "$BOOTLOADER" = syslinux ] \
+		&& { [ -n "$replace_alpine_dev" ] || [ -z "$upgrade" ]; } \
+		&& [ -n "$UUID" ]; then
+	sed -E -i -e "s/alpine_dev=[^ \t:]+/alpine_dev=UUID=$UUID/" \
+		"$destdir"/"$syslinux_cfg"
+fi
+
+# verify syslinux.cfg
+if [ "$BOOTLOADER" = syslinux ]; then
+	check_syslinux
+fi
+
+# cleanup
+[ -z "$keep_old" ] && rm -rf "$destdir"/.old "$destdir"/.new
+
+# If we only copy then we are done.
+if [ -n "$upgrade" ] && [ -z "$force_bootloader" ]; then
+	exit 0
+fi
+
+# prevent running syslinux on mounted device
+if [ -n "$nosyslinux" ] && [ "$BOOTLOADER" != none ]; then
+	echo "Warning: Can not run bootloader on a mounted device"
+	echo "         You might need run bootloader manually"
+	exit 0
+fi
+
+install_bootloader "$dest" "$parent_dev"

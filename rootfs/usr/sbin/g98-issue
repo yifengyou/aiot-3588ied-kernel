@@ -1,0 +1,33 @@
+#!/bin/sh
+# 生成 /etc/issue；refresh 模式（dhcpcd hook 用）：原地重绘 HDMI(tty1-6) 登录界面
+
+mode="$1"
+
+ips=""
+for ifc in eth2 eth3; do
+	a=$(ip -4 -o addr show dev "$ifc" scope global 2>/dev/null | awk '{split($4,x,"/"); print x[1]; exit}')
+	[ -n "$a" ] && ips="${ips:+$ips,}$a"
+done
+
+{
+	if [ "$mode" = refresh ]; then printf '\0338\033[0J'; else printf '\0337'; fi
+	printf '%s\n' "Welcome to Alpine Linux 3.24"
+	printf '%s\n' 'Kernel \r on \m (\l)'
+	printf '%s\n' "${ips:+$ips}"
+	printf '%s\n' "https://github.com/yifengyou"
+} > /etc/issue.tmp
+
+if cmp -s /etc/issue.tmp /etc/issue 2>/dev/null; then
+	rm -f /etc/issue.tmp
+	exit 0
+fi
+mv /etc/issue.tmp /etc/issue
+
+if [ "$mode" = refresh ]; then
+	for p in $(pidof getty); do
+		tty=$(tr '\0' ' ' < /proc/$p/cmdline 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i ~ /^tty/) print $i}')
+		case "$tty" in
+		tty[1-6]) kill "$p" 2>/dev/null ;;
+		esac
+	done
+fi

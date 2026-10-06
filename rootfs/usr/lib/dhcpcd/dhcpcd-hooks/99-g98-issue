@@ -1,0 +1,4 @@
+# WAN 口(eth2/eth3) DHCP 事件后刷新 /etc/issue，HDMI 登录界面原地重绘
+case "$interface" in
+eth2|eth3) /usr/sbin/g98-issue refresh >/dev/null 2>&1 & ;;
+esac

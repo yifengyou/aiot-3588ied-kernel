@@ -1,0 +1,26 @@
+auto lo
+iface lo inet loopback
+
+auto eth2
+iface eth2 inet manual
+
+auto eth3
+iface eth3 inet manual
+
+auto eth0
+iface eth0 inet manual
+
+auto eth1
+iface eth1 inet manual
+
+auto br0
+iface br0 inet static
+    address 192.168.98.1
+    netmask 255.255.255.0
+    bridge_ports lan1 lan2 lan3 lan4 lan5 lan6 lan7 lan8
+    bridge_stp off
+    bridge_fd 0
+    up ip link set eth0 up
+    up ip link set eth1 up
+
+

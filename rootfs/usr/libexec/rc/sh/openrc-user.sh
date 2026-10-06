@@ -1,0 +1,42 @@
+#!/bin/sh
+
+. /usr/libexec/rc/sh/functions.sh
+
+exec 3>&1 >&2
+
+if [ -z "${XDG_RUNTIME_DIR}" ]; then
+	logger -p daemon.err "XDG_RUNTIME_DIR unset, user services cannot start."
+	exit 1
+fi
+
+sysconfdir="${XDG_CONFIG_HOME:-${HOME}/.config}/rc"
+cachedir="${XDG_CACHE_HOME:-${HOME}/.cache}/rc"
+svcdir="${XDG_RUNTIME_DIR?}/openrc"
+
+for config in "/etc/rc.conf" "$sysconfdir/rc.conf"; do
+	if [ -e "$config" ] && ! . "$config"; then
+		logger -p daemon.err "openrc-user: Failed loading $config"
+		exit 1
+	fi
+done
+
+mkdir -p "$svcdir"
+mkdir -p "$cachedir"
+
+for runlevel in boot "${rc_default_runlevel:-default}" shutdown; do
+	mkdir -p "$sysconfdir/runlevels/$runlevel"
+done
+
+case $1 in
+	start)
+		cp -pr "$cachedir"/* "$svcdir" 2>/dev/null
+		openrc --user boot || exit 1
+		printf '\n' >&3
+		exec openrc --user "${rc_default_runlevel:-default}"
+		;;
+	stop)
+		cp -pr "$svcdir"/dep* "$svcdir/init.d" "$svcdir/conf.d" "$cachedir" 2>/dev/null
+		exec openrc --user shutdown
+		;;
+	*) logger -p daemon.err "no argument given to $0" && exit 1
+esac

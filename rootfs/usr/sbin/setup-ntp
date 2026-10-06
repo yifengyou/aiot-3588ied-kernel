@@ -1,0 +1,72 @@
+#!/bin/sh
+
+PREFIX=/usr
+: ${LIBDIR=$PREFIX/lib}
+. "$LIBDIR/libalpine.sh"
+
+usage() {
+	cat >&$(( $1 + 1 ))<<-__EOF__
+		usage: setup-ntp [-h] [busybox|openntpd|chrony|none]
+
+		Setup NTP time synchronization
+
+		options:
+		 -h  Show this help
+
+		 User is prompted if no NTP daemon is specified
+	__EOF__
+	exit $1
+}
+
+while getopts "hc:" opt; do
+	case $opt in
+		c) resp="$OPTARG";;
+		h) usage 0;;
+		'?') usage 1;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+
+: ${resp:=$1}
+
+while [ $# -eq 0 ] && ! isin "$resp" busybox openntpd chrony none abort; do
+	if date -d "$resp" >/dev/null 2>&1; then
+		$MOCK date -s "$resp"
+	else
+		# display current time before asking for NTP client
+		date
+	fi
+	ask "Which NTP client to run? ('busybox', 'openntpd', 'chrony' or 'none')" busybox
+done
+
+pkgs="$resp"
+
+case "$resp" in
+	none|abort)
+		exit 0
+		;;
+	busybox)
+		pkgs=''
+		svc=ntpd
+		;;
+	chrony)
+		if apk info --installed --quiet acf-core; then
+			pkgs="$pkgs acf-chrony"
+		fi
+		svc=chronyd
+		;;
+	openntpd)
+		svc=openntpd
+		;;
+	*)
+		echo "setup-ntp: '$resp' is not a supported NTP client" >&2
+		usage 1
+		;;
+esac
+
+# force synchronous time-sync before network access
+$MOCK busybox ntpd -qnN -p pool.ntp.org >/dev/null
+
+[ -z "$pkgs" ] || apk add --quiet $pkgs
+rc-update add $svc default
+rc-service $svc start
