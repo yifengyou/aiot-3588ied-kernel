@@ -41,6 +41,8 @@ $MOCK mount -t tmpfs -o nodev,nosuid,noexec shm /dev/shm
 hostname AIoT-3588IED
 echo "setup hostname: AIoT-3588IED" > /dev/ttyS2
 
+[ -c /dev/watchdog ] && watchdog -t 5 /dev/watchdog &
+
 echo "Kdev! Ok! default username:root password:root" > /dev/ttyS2
 
 exec /sbin/init
