@@ -681,7 +681,7 @@ var ubootDefaultVars = map[string]string{
 	"button_cmd_0_name":  "Recovery key",
 	"cpu":                "armv8",
 	"fdt_addr_r":        "0x12000000",
-	"fdtfile":            "rockchip/rk3588-bdy-g98.dtb",
+	"fdtfile":            "rockchip/rk3588-aiot-3588ied.dtb",
 	"fdtoverlay_addr_r":  "0x12100000",
 	"kernel_addr_r":      "0x02000000",
 	"kernel_comp_addr_r": "0x0a000000",

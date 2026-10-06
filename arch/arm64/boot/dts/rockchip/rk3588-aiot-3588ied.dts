@@ -108,26 +108,26 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&hp_det>;
 
-		simple-audio-card,name = "realtek,rt5616-codec";
+		simple-audio-card,name = "rockchip-es8388";
 		simple-audio-card,format = "i2s";
 		simple-audio-card,mclk-fs = <256>;
 
-		simple-audio-card,hp-det-gpios = <&gpio1 RK_PC4 GPIO_ACTIVE_LOW>;
+		simple-audio-card,hp-det-gpios = <&gpio4 RK_PC2 GPIO_ACTIVE_LOW>;
 
 		simple-audio-card,widgets =
 			"Headphone", "Headphones",
 			"Microphone", "Microphone Jack";
 		simple-audio-card,routing =
-			"Headphones", "HPOL",
-			"Headphones", "HPOR",
-			"MIC1", "Microphone Jack",
+			"Headphones", "LOUT1",
+			"Headphones", "ROUT1",
+			"LINPUT1", "Microphone Jack",
 			"Microphone Jack", "micbias1";
 
 		simple-audio-card,cpu {
 			sound-dai = <&i2s0_8ch>;
 		};
 		simple-audio-card,codec {
-			sound-dai = <&rt5616>;
+			sound-dai = <&es8388>;
 		};
 	};
 
@@ -351,14 +351,14 @@
 };
 
 &hdmi_receiver_cma {
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi_receiver {
 	hpd-gpios = <&gpio1 RK_PD5 GPIO_ACTIVE_LOW>;
 	pinctrl-0 = <&hdmim1_rx_cec &hdmim1_rx_hpdin &hdmim1_rx_scl &hdmim1_rx_sda &hdmirx_hpd>;
 	pinctrl-names = "default";
-	status = "okay";
+	status = "disabled";
 };
 
 &hdptxphy0 {
@@ -370,8 +370,35 @@
 };
 
 &i2c0 {
+	status = "disabled";
+};
+
+&i2c1 {
+	pinctrl-0 = <&i2c1m2_xfer>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&i2c0m2_xfer>;
+	status = "okay";
+
+	vdd_npu_s0: regulator@42 {
+		compatible = "rockchip,rk8602";
+		reg = <0x42>;
+		fcs,suspend-voltage-selector = <1>;
+		regulator-name = "vdd_npu_s0";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <550000>;
+		regulator-max-microvolt = <950000>;
+		regulator-ramp-delay = <2300>;
+		vin-supply = <&vcc4v0_sys>;
+
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
+	};
+};
+
+&i2c2 {
+	pinctrl-0 = <&i2c2m4_xfer>;
+	pinctrl-names = "default";
 	status = "okay";
 
 	vdd_cpu_big0_s0: regulator@42 {
@@ -409,27 +436,9 @@
 	};
 };
 
-&i2c2 {
-	status = "okay";
-
-	vdd_npu_s0: regulator@42 {
-		compatible = "rockchip,rk8602";
-		reg = <0x42>;
-		fcs,suspend-voltage-selector = <1>;
-		regulator-name = "vdd_npu_s0";
-		regulator-boot-on;
-		regulator-min-microvolt = <550000>;
-		regulator-max-microvolt = <950000>;
-		regulator-ramp-delay = <2300>;
-		vin-supply = <&vcc4v0_sys>;
-
-		regulator-state-mem {
-			regulator-off-in-suspend;
-		};
-	};
-};
-
 &i2c6 {
+	pinctrl-0 = <&i2c6m0_xfer>;
+	pinctrl-names = "default";
 	status = "okay";
 
 	nca9555: gpio-expander@20 {
@@ -509,12 +518,13 @@
 };
 
 &i2c7 {
-	clock-frequency = <200000>;
+	pinctrl-0 = <&i2c7m0_xfer>;
+	pinctrl-names = "default";
 	status = "okay";
 
-	rt5616: codec@1b {
-		compatible = "realtek,rt5616";
-		reg = <0x1b>;
+	es8388: codec@11 {
+		compatible = "everest,es8388", "everest,es8323";
+		reg = <0x11>;
 		clocks = <&cru I2S0_8CH_MCLKOUT>;
 		clock-names = "mclk";
 		#sound-dai-cells = <0>;
@@ -522,7 +532,7 @@
 		assigned-clock-rates = <12288000>;
 
 		port {
-			rt5616_p0_0: endpoint {
+			es8388_p0_0: endpoint {
 				remote-endpoint = <&i2s0_8ch_p0_0>;
 			};
 		};
@@ -549,17 +559,17 @@
 		i2s0_8ch_p0_0: endpoint {
 			dai-format = "i2s";
 			mclk-fs = <256>;
-			remote-endpoint = <&rt5616_p0_0>;
+			remote-endpoint = <&es8388_p0_0>;
 		};
 	};
 };
 
 &i2s5_8ch {
-	status = "okay";
+	status = "disabled";
 };
 
 &i2s6_8ch {
-	status = "okay";
+	status = "disabled";
 };
 
 &package_thermal {
@@ -659,7 +669,7 @@
 
 	headphone {
 		hp_det: hp-det {
-			rockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
@@ -1155,8 +1165,8 @@
 
 &usbdp_phy0 {
 	orientation-switch;
-	sbu1-dc-gpios = <&gpio4 RK_PA1 GPIO_ACTIVE_HIGH>;
-	sbu2-dc-gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
+	sbu1-dc-gpios = <&gpio4 RK_PB1 GPIO_ACTIVE_HIGH>;
+	sbu2-dc-gpios = <&gpio0 RK_PD1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 
 	port {

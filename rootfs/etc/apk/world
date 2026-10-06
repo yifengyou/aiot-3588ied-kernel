@@ -14,6 +14,7 @@ gcompat
 htop
 iperf3
 iptables
+lvm2
 musl-utils
 openrc
 openssh-client
