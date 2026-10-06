@@ -1,0 +1,106 @@
+name: AIoT 3588IED Recovery Build
+
+on:
+  push:
+    branches:
+      - aiot-3588ied
+  repository_dispatch:
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+  ACTIONS_STEP_DEBUG: true
+
+jobs:
+  build-recovery:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show environment
+        id: basic_info
+        run: |
+          nproc
+          uname -a
+          cat /etc/*release
+          free -h
+          mount
+          df -h
+          cat /proc/cpuinfo
+          cat /proc/meminfo
+
+      - name: Create simulated physical disk
+        run: |
+          mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
+          root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
+          sudo truncate -s "${mnt_size}"G /mnt/mnt.img
+          sudo truncate -s "${root_size}"G /root.img
+          sudo losetup /dev/loop6 /mnt/mnt.img
+          sudo losetup /dev/loop7 /root.img
+          sudo pvcreate /dev/loop6
+          sudo pvcreate /dev/loop7
+          sudo vgcreate github /dev/loop6 /dev/loop7
+          sudo lvcreate -n runner -l 100%FREE github
+          sudo mkfs.xfs /dev/github/runner
+          sudo mkdir -p /builder
+          sudo mount /dev/github/runner /builder
+          sudo chown -R runner.runner /builder
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils-aarch64-linux-gnu crossbuild-essential-arm64 \
+            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+            libc6-dev-armhf-cross libgcc-12-dev-arm64-cross \
+            bison flex libbison-dev libfl-dev libfdt-dev libelf-dev \
+            device-tree-compiler u-boot-tools dwarves kmod \
+            dosfstools e2fsprogs f2fs-tools xfsprogs btrfs-progs \
+            squashfs-tools mtools parted gdisk fdisk \
+            lz4 lzma lzop pigz pbzip2 pixz zstd gzip xz-utils zip unzip p7zip-full \
+            build-essential ccache clang lld llvm make cmake pkg-config \
+            libssl-dev libusb-1.0-0-dev libgmp3-dev libmpc-dev \
+            libncurses-dev libncurses5-dev libncursesw5-dev lib32ncurses-dev \
+            libpython3-dev python3 python3-pip python3-setuptools python-is-python3 \
+            curl wget aria2 axel git rsync \
+            coreutils util-linux uuid-runtime qemu-user-static binfmt-support \
+            fakeroot expect patch patchutils sed tree jq ripgrep binwalk \
+            sudo locales lsb-release ca-certificates gnupg dirmngr golang-go
+          df -Th
+
+      - name: Run Recovery Build in Ubuntu 22.04 container
+        working-directory: /builder
+        run: |
+          pwd
+          sudo /bin/cp -a ${{ github.workspace }}/* .
+          ls -alh
+          sudo chown -R root:root .
+          sudo ./kdev-recovery.sh
+          sudo mkdir -p /builder/release
+          sudo cp output/* /builder/release
+
+      - name: List build output
+        run: |
+          ls -alh  /builder/release/*
+          md5sum /builder/release/*
+
+      - name: Upload Recovery to Release
+        uses: ncipollo/release-action@main
+        with:
+          tag: aiot-3588ied-recovery
+          artifacts: /builder/release/*
+          allowUpdates: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            # AIoT 3588IED Recovery 镜像
+
+            - 当前发布版本为中间构建产物，仅供开发测试使用，请勿用于生产环境或关键设备
+            - 出厂设备默认仅配备 SPI Nor Flash，未焊接 eMMC。由于 SPI Flash 与 eMMC 共用硬件引脚，二者物理上互斥，设备只能选择其中一种作为启动介质，请根据实际硬件配置选择对应的固件。
+
+            ## 免责声明
+
+            - **按原样提供**：本镜像不作任何明示或暗示的保证，使用风险由用户自行承担。
+            - **无官方关联**：本项目与 Rockchip、彼度云 任何商业实体无关，为非盈利自由分享。
+            - **安全提示**：部署后请及时更新安全补丁、修改默认密码、配置防火墙及访问控制策略。
+
