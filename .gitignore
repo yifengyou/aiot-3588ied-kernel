@@ -184,3 +184,9 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+# kdev
+/kos/
+/output/
+/recovery/
+
