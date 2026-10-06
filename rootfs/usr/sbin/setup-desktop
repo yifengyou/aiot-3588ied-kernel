@@ -1,0 +1,180 @@
+#!/bin/sh
+
+PREFIX=/usr
+: ${LIBDIR=$PREFIX/lib}
+. "$LIBDIR/libalpine.sh"
+
+usage() {
+	cat <<-__EOF__
+		usage: setup-desktop [-h] [gnome|plasma|xfce|xfce-wayland|mate|sway|lxqt]
+
+		Install a standard desktop
+
+		options:
+		 -h  Show this help
+
+	__EOF__
+	exit $1
+}
+
+prefer_gtk_dark() {
+	if [ -e "$ROOT"/etc/gtk-3.0/settings.ini ]; then
+		return
+	fi
+	mkdir -p "$ROOT"/etc/gtk-3.0
+	cat >"$ROOT"/etc/gtk-3.0/settings.ini <<-EOF
+	[Settings]
+	gtk-application-prefer-dark-theme=1
+	EOF
+}
+
+while getopts "h" opt; do
+	case $opt in
+		h) usage 0;;
+		'?') usage "1" >&2;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+if [ $# -gt 1 ]; then
+	usage "1" >&2
+fi
+
+if [ $# -eq 0 ]; then
+	users=$(awk -F: '{if ($3<65000 && $3 >= 1000) print $1}' "$ROOT"/etc/passwd 2>/dev/null)
+	if [ -z "$users" ]; then
+		setup-user -g "audio,video,netdev"
+	fi
+fi
+
+de="$1"
+
+valid_desktops="xfce xfce-wayland gnome plasma mate sway lxqt none"
+if [ $# -eq 1 ] && ! isin "$de" $valid_desktops; then
+	echo "$de is not a valid desktop" >&2
+	usage "1" >&2
+fi
+shift
+
+while ! isin "$de" $valid_desktops; do
+	ask "Which desktop environment? ('gnome', 'plasma', 'xfce', 'mate', 'sway', 'lxqt' or 'none')" none
+	de="$resp"
+done
+
+case "$de" in
+	none)
+		exit 0
+		;;
+	mate)
+		setup-xorg-base mate-desktop-environment ${BROWSER:-firefox} \
+			gvfs \
+			lightdm \
+			lightdm-gtk-greeter \
+			polkit \
+			dbus \
+			dbus-x11 \
+			font-dejavu \
+			"$@"
+		rc-update add dbus
+		rc-update add lightdm
+		;;
+	xfce)
+		prefer_gtk_dark
+		setup-xorg-base xfce4 ${BROWSER:-firefox} \
+			elogind \
+			gvfs \
+			lightdm \
+			lightdm-gtk-greeter \
+			polkit-elogind \
+			xfce4-screensaver \
+			xfce4-terminal \
+			font-dejavu \
+			"$@"
+		rc-update add lightdm
+		;;
+	xfce-wayland)
+		prefer_gtk_dark
+		setup-wayland-base xfce4 ${BROWSER:-firefox} \
+			adwaita-icon-theme \
+			elogind \
+			greetd-gtkgreet \
+			gvfs \
+			labwc \
+			polkit-elogind \
+			xfce4-screensaver \
+			xfce4-terminal \
+			"$@"
+		rc-update add dbus
+		rc-update add greetd
+		if ! grep -q ^rc_need "$ROOT"/etc/conf.d/greetd 2>/dev/null; then
+			echo 'rc_need="seatd dbus"' >> "$ROOT"/etc/conf.d/greetd
+		fi
+		if ! grep -q xfce4-wayland "$ROOT"/etc/greetd/environments 2>/dev/null; then
+			echo "xfce4-wayland" >> "$ROOT"/etc/greetd/environments
+		fi
+		addgroup greetd seat
+		;;
+	lxqt)
+		setup-xorg-base ${BROWSER:-firefox} \
+			lxqt-desktop \
+			lximage-qt \
+			obconf-qt \
+			pavucontrol-qt \
+			arandr \
+			sddm \
+			font-dejavu \
+			dbus \
+			dbus-x11 \
+			openbox \
+			elogind \
+			polkit-elogind \
+			gvfs \
+			udisks2 \
+			adwaita-qt \
+			oxygen \
+			"$@"
+		rc-update add dbus
+		rc-update add sddm
+		rc-update add elogind
+		;;
+	gnome)
+		setup-wayland-base ${BROWSER:-firefox} "$@"
+		# apk info needs community repos which are enabled with setup-wayland-base
+		apk add $(apk info --quiet --depends gnome gnome-apps-core)
+		rc-update add gdm
+		;;
+	plasma)
+		setup-wayland-base ${BROWSER:-firefox} "$@"
+		# apk info needs community repos which are enabled with setup-wayland-base
+		apk add $(apk info --quiet --depends plasma-desktop-meta kde-applications-base)
+		rc-update add sddm
+		;;
+	sway)
+		setup-wayland-base ${BROWSER:-firefox} \
+			brightnessctl \
+			font-dejavu \
+			foot \
+			grim \
+			i3status \
+			sway \
+			swaybg \
+			swayidle \
+			swaylockd \
+			util-linux-login \
+			wl-clipboard \
+			wmenu \
+			xwayland \
+			"$@"
+		;;
+	*)
+		usage "1" >&2
+		;;
+esac
+
+rc-update del acpid
+
+users=$(awk -F: '{if ($3<65000 && $3 >= 1000) print $1}' "$ROOT"/etc/passwd 2>/dev/null)
+if [ -z "$users" ]; then
+	echo "WARNING: You need to create a user account. Please run: setup-user" >&2
+	echo "" >&2
+fi

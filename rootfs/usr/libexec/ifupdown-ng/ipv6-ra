@@ -1,0 +1,25 @@
+#!/bin/sh
+
+: "${PROCFS_ROOT:=/proc}"
+
+start() {
+	forwarding=$(cat "$PROCFS_ROOT/sys/net/ipv6/conf/$IFACE/forwarding")
+
+	if [ "$forwarding" = 1 ]; then
+		printf '%s\n' 2 > "$PROCFS_ROOT/sys/net/ipv6/conf/$IFACE/accept_ra"
+	else
+		printf '%s\n' 1 > "$PROCFS_ROOT/sys/net/ipv6/conf/$IFACE/accept_ra"
+	fi
+}
+
+stop() {
+	printf '%s\n' 0 > "$PROCFS_ROOT/sys/net/ipv6/conf/$IFACE/accept_ra"
+}
+
+[ -z "$VERBOSE" ] || set -x
+
+case "$PHASE" in
+up) start $impl ;;
+down) stop $impl ;;
+*) ;;
+esac

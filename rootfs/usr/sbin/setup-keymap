@@ -1,0 +1,203 @@
+#!/bin/sh
+
+PREFIX=/usr
+: "${LIBDIR:=$PREFIX/lib}"
+# shellcheck disable=SC1091
+. "$LIBDIR/libalpine.sh"
+
+MAPDIR="$ROOT/usr/share/bkeymaps"
+
+if [ -f "$ROOT/etc/conf.d/loadkmap" ]; then
+	# shellcheck source=/dev/null
+	. "$ROOT/etc/conf.d/loadkmap"
+	variant=$(basename "$KEYMAP")
+	variant="${variant%%.*}"
+fi
+
+usage() {
+	cat <<-__EOF__
+		usage: setup-keymap [-h] [LAYOUT [VARIANT]]
+
+		Sets the system keymap layout and variant.
+
+		options:
+		 -h  Show this help
+
+		Sets keymap to LAYOUT (and VARIANT) or prompt if unspecified.
+	__EOF__
+	exit "$1"
+}
+
+
+show_layouts() {
+	output=""
+	for file in "$MAPDIR"/*; do
+		base=$(basename "$file")
+		output="$output${base%.bmap.gz} "
+	done
+	print_column "$output"
+}
+
+show_variants() {
+	output=""
+	for file in "$MAPDIR/$1"/*; do
+		base=$(basename "$file")
+		output="$output${base%.bmap.gz} "
+	done
+	print_column "$output"
+}
+
+print_column() {
+	# shellcheck disable=SC3043
+	local terminal_width max_word_length number_of_columns words i word
+
+	if [ -z "$1" ]; then
+		echo "Error: No data to display." >&2
+		return 1
+	fi
+
+	terminal_width=$(stty size 2>/dev/null | cut -d' ' -f2)
+	if [ -z "$terminal_width" ] || [ "$terminal_width" -eq 0 ]; then
+		terminal_width=80
+	fi
+
+	max_word_length=$(echo "$1" | awk '{for(i=1;i<=NF;i++) x = (length($i) > x ? length($i) : x)} END {print x}')
+	number_of_columns=$((terminal_width / (max_word_length + 1)))
+
+	if [ "$number_of_columns" -eq 0 ]; then
+		number_of_columns=1
+	fi
+
+	words=$1
+	i=0
+	for word in $words; do
+		printf "%-${max_word_length}s " "$word"
+		i=$((i + 1))
+		if [ $((i % number_of_columns)) -eq 0 ]; then
+			printf "\n"
+		fi
+	done
+	if [ $((i % number_of_columns)) -ne 0 ]; then
+		printf "\n"
+	fi
+}
+
+find_variant() {
+	# shellcheck disable=SC3043
+	local variant="$1"
+
+	for file in "$MAPDIR/$layout/$variant.bmap"*; do
+		[ -f "$file" ] && return 0
+	done
+	return 1
+}
+
+select_layout() {
+	while true; do
+		if [ -z "$layout" ] || ! [ -d "$MAPDIR/$layout" ]; then
+			layout=none
+		fi
+		show_layouts
+		echo ""
+		resp=
+		ask "Select keyboard layout:" "$layout"
+		echo ""
+		if [ "$resp" = "abort" ] || [ "$resp" = "none" ] ; then
+			goodbye 0
+		fi
+		# shellcheck disable=SC2086
+		set -- $resp
+		layout="$1"
+		variant="$2"
+		if [ -d "$MAPDIR/$layout" ] ; then
+			return 0
+		fi
+	done
+}
+
+setup_mapfile() {
+	# shellcheck disable=SC3043
+	local name conf
+
+	name=$(basename "$1")
+	conf="$ROOT/etc/conf.d/loadkmap"
+	mkdir -p "$ROOT/etc/keymap"
+	mkdir -p "$ROOT/etc/conf.d/"
+	if cp "$1" "$ROOT/etc/keymap/$name" ; then
+		[ -f "$conf" ] && sed -i '/^KEYMAP=/d' "$conf"
+		echo "KEYMAP=/etc/keymap/$name" >> "$conf"
+		# we actually load the keymap now
+		rc-service loadkmap restart
+		rc-update --quiet add loadkmap boot
+		goodbye 0
+	fi
+}
+
+select_variant() {
+	while true; do
+		show_variants "$layout"
+		if [ ! -f "$MAPDIR/$layout/$variant.bmap" ] ; then
+			variant=""
+		fi
+		echo ""
+		ask "Select variant (or 'abort'):" "$variant"
+		echo ""
+		variant="$resp"
+		if [ "$variant" = "abort" ] || [ "$variant" = "none" ]; then
+			break;
+		fi
+		if find_variant "$variant"; then
+			setup_mapfile "$file"
+		fi
+	done
+}
+
+goodbye() {
+	apk del --quiet --no-progress .setup-keymap-deps
+	exit "$1"
+}
+
+while getopts "h" opt; do
+	case $opt in
+		h) usage 0;;
+		'?') usage "1" >&2;;
+	esac
+done
+shift $((OPTIND - 1))
+
+trap 'goodbye 1' INT
+apk add --quiet --virtual .setup-keymap-deps kbd-bkeymaps
+
+deflayout="$1"
+defvariant="$2"
+while true; do
+	if [ -n "$deflayout" ]; then
+		if [ "$deflayout" = "none" ]; then
+			goodbye 0
+		fi
+		layout="$deflayout"
+		unset deflayout
+	else
+		select_layout
+	fi
+
+	if [ -n "$defvariant" ]; then
+		variant="$defvariant"
+	fi
+
+	# if variant is defined, this could match, otherwise we'll have to choose a variant
+	if find_variant "$variant"; then
+		setup_mapfile "$file"
+	else
+		# if there is only one variant, just pick it
+		count=0
+		for file in "$MAPDIR/$layout"/*; do
+			[ -f "$file" ] && count=$((count + 1))
+		done
+		if [ "$count" -eq 1 ]; then
+			setup_mapfile "$MAPDIR/$layout/"*
+			continue
+		fi
+		select_variant
+	fi
+done
