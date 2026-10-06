@@ -612,9 +612,7 @@
 };
 
 &pcie2x1l2 {
-	reset-gpios = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pcie2_2_rst>;
+	reset-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 };
 
@@ -687,7 +685,7 @@
 		};
 
 		pcie2_2_rst: pcie2-2-rst {
-			rockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <1 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		pcie_m2_0_pwren: pcie-m20-pwren {
