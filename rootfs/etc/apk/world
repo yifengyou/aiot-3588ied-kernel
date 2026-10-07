@@ -16,6 +16,7 @@ htop
 iperf3
 iproute2
 iptables
+lm-sensors
 lvm2
 musl-utils
 openrc

@@ -3180,6 +3180,55 @@ R:unix_chkpwd
 a:0:42:2755
 Z:Q1mK6X23c+rqvJR4pqqThXvAfmNd4=
 
+C:Q1JxvVaxpRtdfGL7kQPuxQ5B2YO9c=
+P:lm-sensors
+V:3.6.0-r5
+A:aarch64
+S:13013
+I:78353
+T:Collection of user space tools for general SMBus access and hardware monitoring.
+U:https://github.com/lm-sensors/lm-sensors
+L:LGPL-2.1-or-later AND GPL-2.0-or-later
+o:lm-sensors
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1747236304
+c:736f51d295eb3e934f768a0ed0dcefe1d69753d1
+D:sysfsutils /bin/sh so:libc.musl-aarch64.so.1 so:libsensors.so.5
+p:lm_sensors=3.6.0-r5 cmd:sensors=3.6.0-r5
+F:etc
+R:sensors3.conf
+Z:Q1xYp5UmqCHQcE+qS8t699vFvBsAY=
+F:etc/sensors.d
+F:usr
+F:usr/bin
+R:sensors
+a:0:0:755
+Z:Q1nFrJRlaRB9K8ahwQk6bYFT+aOsM=
+
+C:Q17Rjnbx1v2lAm+Kj/ODeB15YwfWc=
+P:lm-sensors-libs
+V:3.6.0-r5
+A:aarch64
+S:21721
+I:67352
+T:Collection of user space tools for general SMBus access and hardware monitoring. (libraries)
+U:https://github.com/lm-sensors/lm-sensors
+L:LGPL-2.1-or-later AND GPL-2.0-or-later
+o:lm-sensors
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1747236304
+c:736f51d295eb3e934f768a0ed0dcefe1d69753d1
+D:so:libc.musl-aarch64.so.1
+p:so:libsensors.so.5=5.0.0
+F:usr
+F:usr/lib
+R:libsensors.so.5
+a:0:0:777
+Z:Q1xVKmiP8jx4oAG7a4fW43eRUiqGA=
+R:libsensors.so.5.0.0
+a:0:0:755
+Z:Q1nFgpieOSYTjIDmP0BhIjUJQNhQw=
+
 C:Q1FawaP1aUa33zKj4xS6k0BvGPnN8=
 P:logger
 V:2.42.1-r0
@@ -4989,6 +5038,34 @@ F:usr/bin
 R:ssl_client
 a:0:0:755
 Z:Q1juklsxJUBhfQunt7L+qrW/iZ9nw=
+
+C:Q1XpVCFjcP6SBhNbKiNibW5GHJ9Jg=
+P:sysfsutils
+V:2.1.1-r3
+A:aarch64
+S:24751
+I:134568
+T:System Utilities Based on Sysfs
+U:https://github.com/linux-ras/sysfsutils
+L:GPL-2.0-only AND LGPL-2.1-only
+o:sysfsutils
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1684120357
+c:33283848034c9885d984c8e8697c645c57324938
+D:so:libc.musl-aarch64.so.1
+p:cmd:systool=2.1.1-r3 so:libsysfs.so.2=2.0.1
+F:usr
+F:usr/bin
+R:systool
+a:0:0:755
+Z:Q1qQEh0KuoeUmqQIwH7uKgG9dPcx4=
+F:usr/lib
+R:libsysfs.so.2
+a:0:0:777
+Z:Q14xLtE/OdrBMrJhzWGJTk3qymiVg=
+R:libsysfs.so.2.0.1
+a:0:0:755
+Z:Q1UU5h0TKwG5eDsY+U+/cLUoCD6a8=
 
 C:Q1eOuPsYnWFBs3FjrmI45Duks/JT4=
 P:u-boot-tools
