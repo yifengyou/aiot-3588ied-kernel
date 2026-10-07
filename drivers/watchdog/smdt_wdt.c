@@ -11,13 +11,16 @@
  */
 
 #include <linux/bitops.h>
+#include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/i2c.h>
 #include <linux/kernel.h>
+#include <linux/ktime.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/property.h>
+#include <linux/spinlock.h>
 #include <linux/watchdog.h>
 
 #define SMDT_WDT_REG_ENABLE	0x32
@@ -38,6 +41,13 @@ struct smdt_wdt {
 	struct i2c_client *client;
 	struct watchdog_device wdd;
 	struct delayed_work feed_work;
+
+	spinlock_t stats_lock;
+	u64 total_feeds;
+	u64 total_failures;
+	u64 last_feed_ns;
+
+	struct dentry *debugfs_dir;
 };
 
 static int smdt_wdt_i2c_write(struct i2c_client *client, u8 reg, u8 val)
@@ -110,12 +120,57 @@ static void smdt_wdt_feed_work(struct work_struct *work)
 {
 	struct smdt_wdt *wdt = container_of(work, struct smdt_wdt,
 					     feed_work.work);
+	int ret;
 
-	smdt_wdt_ping(&wdt->wdd);
+	ret = smdt_wdt_ping(&wdt->wdd);
+
+	spin_lock(&wdt->stats_lock);
+	wdt->total_feeds++;
+	if (ret)
+		wdt->total_failures++;
+	else
+		wdt->last_feed_ns = ktime_get_ns();
+	spin_unlock(&wdt->stats_lock);
 
 	schedule_delayed_work(&wdt->feed_work,
 			      SMDT_WDT_FEED_INTERVAL * HZ);
 }
+
+static int smdt_wdt_stats_show(struct seq_file *s, void *data)
+{
+	struct smdt_wdt *wdt = s->private;
+	u64 now_ns;
+	u64 elapsed_secs;
+
+	spin_lock(&wdt->stats_lock);
+	now_ns = ktime_get_ns();
+	if (wdt->last_feed_ns)
+		elapsed_secs = div_u64(now_ns - wdt->last_feed_ns, NSEC_PER_SEC);
+	else
+		elapsed_secs = 0;
+
+	seq_printf(s, "=== SMDT Watchdog Feed Statistics ===\n");
+	seq_printf(s, "feed interval:  %d seconds\n", SMDT_WDT_FEED_INTERVAL);
+	seq_printf(s, "total feeds:    %llu\n", wdt->total_feeds);
+	seq_printf(s, "total failures: %llu\n", wdt->total_failures);
+	seq_printf(s, "last feed ago:  %llu seconds\n", elapsed_secs);
+	spin_unlock(&wdt->stats_lock);
+
+	return 0;
+}
+
+static int smdt_wdt_stats_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, smdt_wdt_stats_show, inode->i_private);
+}
+
+static const struct file_operations smdt_wdt_stats_fops = {
+	.owner = THIS_MODULE,
+	.open = smdt_wdt_stats_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
 
 static const struct watchdog_info smdt_wdt_info = {
 	.options = WDIOF_KEEPALIVEPING | WDIOF_MAGICCLOSE,
@@ -143,6 +198,7 @@ static int smdt_wdt_probe(struct i2c_client *client)
 		return -ENOMEM;
 
 	wdt->client = client;
+	spin_lock_init(&wdt->stats_lock);
 
 	INIT_DELAYED_WORK(&wdt->feed_work, smdt_wdt_feed_work);
 
@@ -168,6 +224,10 @@ static int smdt_wdt_probe(struct i2c_client *client)
 	if (ret)
 		return dev_err_probe(dev, ret, "failed to register watchdog\n");
 
+	wdt->debugfs_dir = debugfs_create_dir("smdt_wdt", NULL);
+	debugfs_create_file("stats", 0444, wdt->debugfs_dir, wdt,
+			    &smdt_wdt_stats_fops);
+
 	dev_info(dev, "SMDT MCU watchdog started (i2c @ 0x%02x)\n",
 		 client->addr);
 
@@ -178,8 +238,11 @@ static void smdt_wdt_remove(struct i2c_client *client)
 {
 	struct smdt_wdt *wdt = i2c_get_clientdata(client);
 
-	if (wdt)
-		cancel_delayed_work_sync(&wdt->feed_work);
+	if (!wdt)
+		return;
+
+	cancel_delayed_work_sync(&wdt->feed_work);
+	debugfs_remove_recursive(wdt->debugfs_dir);
 }
 
 static const struct of_device_id smdt_wdt_dt_ids[] = {
