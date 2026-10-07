@@ -293,6 +293,8 @@
 		rgmii_phy1: phy@1 {
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <1>;
+			motorcomm,led0-triggers = "activity";
+			motorcomm,led1-triggers = "link-10", "link-100", "link-1000";
 		};
 	};
 };
@@ -549,6 +551,11 @@
 		interrupts = <RK_PB0 IRQ_TYPE_LEVEL_LOW>;
 		wakeup-source;
 	};
+
+	smdt_wdt: watchdog@62 {
+		compatible = "smdt,mcu-wdt";
+		reg = <0x62>;
+	};
 };
 
 &i2c7 {
@@ -646,14 +653,6 @@
 	reset-gpios = <&nca9555 15 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie30>;
 	status = "okay";
-};
-
-&pd_gpu {
-	domain-supply = <&vdd_gpu_s0>;
-};
-
-&pd_npu {
-	domain-supply = <&vdd_npu_s0>;
 };
 
 &pinctrl {

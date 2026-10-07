@@ -2354,4 +2354,16 @@ config KEEMBAY_WATCHDOG
 	  To compile this driver as a module, choose M here: the
 	  module will be called keembay_wdt.
 
+config SMDT_WATCHDOG
+	tristate "SMDT MCU I2C Watchdog"
+	depends on I2C
+	select WATCHDOG_CORE
+	help
+	  This option enables support for the SMDT MCU external watchdog
+	  connected via I2C. The MCU requires periodic feed writes
+	  (reg 0x33 = 0xab) every ~20 seconds to prevent system reset.
+
+	  To compile this driver as a module, choose M here:
+	  the module will be called smdt_wdt.
+
 endif # WATCHDOG

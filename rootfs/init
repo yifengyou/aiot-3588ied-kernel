@@ -26,6 +26,7 @@ $MOCK mount -t devtmpfs -o exec,nosuid,mode=0755,size=2M devtmpfs /dev
 [ -c /dev/kmsg ] || $MOCK mknod -m 660 /dev/kmsg c 1 11
 
 $MOCK mount -t proc -o noexec,nosuid,nodev proc /proc
+$MOCK mount -t debugfs -o noexec,nosuid,nodev debugfs /sys/kernel/debug
 [ -c /dev/ptmx ] || $MOCK mknod -m 666 /dev/ptmx c 5 2
 [ -d /dev/pts ] || $MOCK mkdir -m 755 /dev/pts
 $MOCK mount -t devpts -o gid=5,mode=0620,noexec,nosuid devpts /dev/pts
@@ -40,8 +41,6 @@ $MOCK mount -t tmpfs -o nodev,nosuid,noexec shm /dev/shm
 
 hostname AIoT-3588IED
 echo "setup hostname: AIoT-3588IED" > /dev/ttyS2
-
-[ -x /usr/sbin/smdt_wdt ] && /usr/sbin/smdt_wdt &
 
 echo "Kdev! Ok! default username:root password:root" > /dev/ttyS2
 
