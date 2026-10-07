@@ -55,7 +55,7 @@ cat >> "$tmpf" <<'ART'
 ***************************************************************
   Welcome to RKdev System
 
-  OS: Alpine Linux (RK3588)
+  OS: Alpine Linux v3.24
   Kernel: KVER
   LINE1
   LINE2
