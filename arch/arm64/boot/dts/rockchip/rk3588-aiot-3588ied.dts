@@ -122,13 +122,14 @@
 			"Headphones", "LOUT1",
 			"Headphones", "ROUT1",
 			"LINPUT1", "Microphone Jack",
-			"Microphone Jack", "micbias1";
+			"Microphone Jack", "Mic Bias";
 
 		simple-audio-card,cpu {
 			sound-dai = <&i2s0_8ch>;
 		};
 		simple-audio-card,codec {
 			sound-dai = <&es8388>;
+			system-clock-frequency = <12288000>;
 		};
 	};
 
@@ -563,12 +564,6 @@
 		#sound-dai-cells = <0>;
 		assigned-clocks = <&cru I2S0_8CH_MCLKOUT>;
 		assigned-clock-rates = <12288000>;
-
-		port {
-			es8388_p0_0: endpoint {
-				remote-endpoint = <&i2s0_8ch_p0_0>;
-			};
-		};
 	};
 
 	/* connected with MIPI-CSI1 */
@@ -587,14 +582,6 @@
 		     &i2s0_sdi0
 		     &i2s0_sdo0>;
 	status = "okay";
-
-	i2s0_8ch_p0: port {
-		i2s0_8ch_p0_0: endpoint {
-			dai-format = "i2s";
-			mclk-fs = <256>;
-			remote-endpoint = <&es8388_p0_0>;
-		};
-	};
 };
 
 &i2s5_8ch {
