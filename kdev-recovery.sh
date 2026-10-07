@@ -99,11 +99,13 @@ ls -al recovery/kernel.lzma
 
 # generate recovery
 cd ${WORKDIR}/recovery
-dd if=/dev/zero of=recovery.img bs=1M count=60
+dd if=/dev/zero of=recovery.img bs=1M count=63
 mkimage -A arm64 -O linux -T kernel -C lzma \
   -a 0x40080000 -e 0x40080000 \
   -n "Recovery Kernel" \
   -d kernel.lzma kernel-uImage.lzma
+hdr_crc=$(mkimage -l kernel-uImage.lzma | awk -F': ' '/Data CRC/{print $2}')
+echo "uImage CRC: $hdr_crc"
 
 mkfs.ext4 \
   -O '^metadata_csum,^has_journal,^resize_inode' \

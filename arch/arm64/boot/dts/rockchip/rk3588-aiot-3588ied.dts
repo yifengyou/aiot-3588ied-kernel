@@ -302,15 +302,12 @@
 };
 
 &hdmi0 {
-	frl-enable-gpios = <&gpio4 RK_PB1 GPIO_ACTIVE_LOW>;
-	pinctrl-0 = <&hdmim0_tx0_cec &hdmim0_tx0_hpd
-		     &hdmim0_tx0_scl &hdmim0_tx0_sda &hdmi0_tx_on_h>;
-	pinctrl-names = "default";
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi0_in {
-	hdmi0_in_vp0: endpoint {
+	hdmi0_in_vp0: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
+		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
 		remote-endpoint = <&vp0_out_hdmi0>;
 	};
 };
@@ -321,21 +318,17 @@
 	};
 };
 
-&hdmi0_sound {
-	status = "okay";
-};
-
 &hdmi1 {
-	frl-enable-gpios = <&gpio4 RK_PB2 GPIO_ACTIVE_LOW>;
-	pinctrl-0 = <&hdmim2_tx1_cec &hdmim0_tx1_hpd
-		     &hdmim1_tx1_scl &hdmim1_tx1_sda &hdmi1_tx_on_h>;
+	frl-enable-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
+	pinctrl-0 = <&hdmim1_tx1_cec &hdmim0_tx1_hpd
+		     &hdmim2_tx1_scl &hdmim2_tx1_sda &hdmi1_tx_on_h>;
 	pinctrl-names = "default";
 	status = "okay";
 };
 
 &hdmi1_in {
-	hdmi1_in_vp1: endpoint {
-		remote-endpoint = <&vp1_out_hdmi1>;
+	hdmi1_in_vp0: endpoint {
+		remote-endpoint = <&vp0_out_hdmi1>;
 	};
 };
 
@@ -346,7 +339,7 @@
 };
 
 &hdmi1_sound {
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi_receiver_cma {
@@ -361,7 +354,7 @@
 };
 
 &hdptxphy0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &hdptxphy1 {
@@ -647,12 +640,8 @@
 	};
 
 	hdmi {
-		hdmi0_tx_on_h: hdmi0-tx-on-h {
-			rockchip,pins = <4 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
 		hdmi1_tx_on_h: hdmi1-tx-on-h {
-			rockchip,pins = <4 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <1 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
@@ -1254,15 +1243,15 @@
 		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
 		remote-endpoint = <&hdmi0_in_vp0>;
 	};
-};
-
-&vp1 {
-	vp1_out_hdmi1: endpoint@ROCKCHIP_VOP2_EP_HDMI1 {
+	vp0_out_hdmi1: endpoint@ROCKCHIP_VOP2_EP_HDMI1 {
 		reg = <ROCKCHIP_VOP2_EP_HDMI1>;
-		remote-endpoint = <&hdmi1_in_vp1>;
+		remote-endpoint = <&hdmi1_in_vp0>;
 	};
 };
 
+&vp1 {
+};
+
 &wdt {
-	status = "okay";
+	status = "disabled";
 };
