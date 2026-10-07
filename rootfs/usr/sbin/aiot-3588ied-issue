@@ -21,7 +21,7 @@ fmt_if() {
 }
 
 line1=$(fmt_if eth0 WAN)
-line2=$(fmt_if eth1 LAN)
+line2=$(fmt_if br0 LAN)
 
 {
 	if [ "$mode" = refresh ]; then printf '\0338\033[0J'; else printf '\0337'; fi
@@ -56,10 +56,10 @@ line2=$(fmt_if eth1 LAN)
 	printf '%s\n' "  Kernel: ${kver}"
 	printf '%s\n' "  ${line1}"
 	printf '%s\n' "  ${line2}"
-	printf '%s\n' "  Documentation: https://github.com/yifengyou/BDY_G98_RK3588"
-	printf '%s\n' ""
 	printf '%s\n' "  Default Account: root/root"
-	printf '%s\n' "  Authorized access only. All activities are monitored."
+	printf '%s\n' "  Documentation: https://github.com/yifengyou/aiot-3588ied"
+	printf '%s\n' ""
+	printf '%s\n' "  Copyright (C) 2026 RKdev. All rights reserved."
 	printf '%s\n' "***************************************************************"
 	printf '%s\n' ""
 } > /etc/issue.tmp
@@ -68,7 +68,8 @@ if cmp -s /etc/issue.tmp /etc/issue 2>/dev/null; then
 	rm -f /etc/issue.tmp
 	exit 0
 fi
-mv /etc/issue.tmp /etc/issue
+	mv /etc/issue.tmp /etc/issue
+	cp /etc/issue /etc/motd
 
 if [ "$mode" = refresh ]; then
 	for p in $(pidof getty); do
