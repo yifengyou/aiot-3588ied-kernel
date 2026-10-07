@@ -66,7 +66,9 @@ static int smdt_wdt_i2c_write(struct i2c_client *client, u8 reg, u8 val)
 
 	ret = i2c_transfer(client->adapter, &msg, 1);
 	if (ret != 1) {
-		dev_err(&client->dev, "i2c write reg 0x%02x failed: %d\n", reg, ret);
+		dev_warn_ratelimited(&client->dev,
+				     "i2c write reg 0x%02x failed: %d\n",
+				     reg, ret);
 		return ret < 0 ? ret : -EIO;
 	}
 
