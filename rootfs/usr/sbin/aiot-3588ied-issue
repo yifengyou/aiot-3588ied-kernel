@@ -1,20 +1,67 @@
 #!/bin/sh
-# 生成 /etc/issue；refresh 模式（dhcpcd hook 用）：原地重绘 HDMI(tty1-6) 登录界面
 
 mode="$1"
 
-ips=""
-for ifc in eth1 do
+kver=$(uname -r | sed 's/-.*//')
+
+fmt_if() {
+	local ifc="$1" label="$2"
+	local a state
 	a=$(ip -4 -o addr show dev "$ifc" scope global 2>/dev/null | awk '{split($4,x,"/"); print x[1]; exit}')
-	[ -n "$a" ] && ips="${ips:+$ips,}$a"
-done
+	if ip link show dev "$ifc" 2>/dev/null | grep -q "UP"; then
+		state="UP"
+	else
+		state="DOWN"
+	fi
+	if [ -n "$a" ]; then
+		printf '%s(%s): (%s) %s' "$ifc" "$label" "$state" "$a"
+	else
+		printf '%s(%s): (%s)' "$ifc" "$label" "$state"
+	fi
+}
+
+line1=$(fmt_if eth0 WAN)
+line2=$(fmt_if eth1 LAN)
 
 {
 	if [ "$mode" = refresh ]; then printf '\0338\033[0J'; else printf '\0337'; fi
-	printf '%s\n' "Welcome to Alpine Linux 3.24"
-	printf '%s\n' 'Kernel \r on \m (\l)'
-	printf '%s\n' "${ips:+$ips}"
-	printf '%s\n' "https://github.com/yifengyou"
+	printf '%s\n' ""
+	printf '%s\n' "                            _ooOoo_"
+	printf '%s\n' "                           o8888888o"
+	printf '%s\n' "                           88\" . \"88"
+	printf '%s\n' "                           (| -_- |)"
+	printf '%s\n' "                           O\\  =  /O"
+	printf '%s\n' "                        ____/\'---\\____"
+	printf '%s\n' "                      .\'  \\\\|     |//  \'."
+	printf '%s\n' "                     /  \\\\|||  :  |||//  \\"
+	printf '%s\n' "                    /  _||||| -:- |||||-  \\"
+	printf '%s\n' "                    |   | \\\\\\  -  /// |   |"
+	printf '%s\n' "                    | \\_|  \'\'\\---/\'\'  |   |"
+	printf '%s\n' "                    \\  .-\\__  \`-\'  ___/-. /"
+	printf '%s\n' "                  ___\`. .\'  /--.--\\  \`. . __"
+	printf '%s\n' "               .\"\" \'<  \`.___\\_<|>_/___.\'  >\'\"\"."
+	printf '%s\n' "              | | :  \`- \\\`;.\` _ /\\\`;.\`/ - \` : | |"
+	printf '%s\n' "              \\  \\ \`-.   \\_ __\\ /__ _/   .-\` /  /"
+	printf '%s\n' "         ======\`-.____\`.___ \\_____/___.-\`____.-\'======"
+	printf '%s\n' "                            \`=---=\'"
+	printf '%s\n' ""
+	printf '%s\n' "         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+	printf '%s\n' "                  Buddha Bless   No Downtime"
+	printf '%s\n' "                   No Bugs       Amen"
+	printf '%s\n' ""
+	printf '%s\n' "***************************************************************"
+	printf '%s\n' "  Welcome to RKdev System"
+	printf '%s\n' ""
+	printf '%s\n' "  OS: Alpine Linux (RK3588)"
+	printf '%s\n' "  Kernel: ${kver}"
+	printf '%s\n' "  ${line1}"
+	printf '%s\n' "  ${line2}"
+	printf '%s\n' "  Documentation: https://github.com/yifengyou/BDY_G98_RK3588"
+	printf '%s\n' ""
+	printf '%s\n' "  Default Account: root/root"
+	printf '%s\n' "  Authorized access only. All activities are monitored."
+	printf '%s\n' "***************************************************************"
+	printf '%s\n' ""
 } > /etc/issue.tmp
 
 if cmp -s /etc/issue.tmp /etc/issue 2>/dev/null; then

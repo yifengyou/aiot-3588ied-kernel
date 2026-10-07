@@ -2538,7 +2538,8 @@ func getFilteredDevices() []BlockDevice {
 			strings.HasPrefix(d.Name, "zram") {
 			continue
 		}
-		if !strings.HasPrefix(d.Name, "sd") && !strings.HasPrefix(d.Name, "nvme") {
+		if !strings.HasPrefix(d.Name, "sd") && !strings.HasPrefix(d.Name, "nvme") &&
+			!strings.HasPrefix(d.Name, "mmcblk") {
 			continue
 		}
 
@@ -2550,6 +2551,8 @@ func getFilteredDevices() []BlockDevice {
 		dt := "Disk"
 		if strings.HasPrefix(d.Name, "nvme") {
 			dt = "NVMe"
+		} else if strings.HasPrefix(d.Name, "mmcblk") {
+			dt = "eMMC/SD"
 		} else if tran == "usb" {
 			dt = "USB"
 		} else if tran == "sata" || tran == "scsi" {

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <err.h>
 #include <errno.h>
 
@@ -13,16 +14,97 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 #include <time.h>
 
 #define I2C_DEV "/dev/i2c-6"
 #define MCU_I2C_ADDR 0x62
+#define LOG_FILE "/var/log/smdt_wdt.log"
+#define FEED_INTERVAL 20
 
-/*
-SMDT 看门狗程序
-*/
+#define WIN_1MIN  (60)
+#define WIN_15MIN (15 * 60)
+#define WIN_30MIN (30 * 60)
+#define MAX_SLOTS (WIN_30MIN / FEED_INTERVAL + 2)
 
 int fd = -1;
+static FILE *logf = NULL;
+
+static struct {
+	time_t ts;
+	int ok;
+} ring[MAX_SLOTS];
+static int ring_head = 0;
+static int ring_count = 0;
+
+static void ring_push(time_t ts, int ok)
+{
+	ring[ring_head].ts = ts;
+	ring[ring_head].ok = ok;
+	ring_head = (ring_head + 1) % MAX_SLOTS;
+	if (ring_count < MAX_SLOTS)
+		ring_count++;
+}
+
+static int ring_query(time_t since, int *total, int *ok_count, int *fail_count)
+{
+	*total = 0;
+	*ok_count = 0;
+	*fail_count = 0;
+	int found = 0;
+	for (int i = 0; i < ring_count; i++) {
+		int idx = (ring_head - ring_count + i + MAX_SLOTS) % MAX_SLOTS;
+		if (ring[idx].ts >= since) {
+			found = 1;
+			(*total)++;
+			if (ring[idx].ok)
+				(*ok_count)++;
+			else
+				(*fail_count)++;
+		}
+	}
+	return found;
+}
+
+static void log_write(const char *fmt, ...)
+{
+	char buf[512];
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, ap);
+	va_end(ap);
+
+	time_t now = time(NULL);
+	struct tm *tm = localtime(&now);
+
+	fprintf(logf, "[%04d-%02d-%02d %02d:%02d:%02d] %s\n",
+		tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+		tm->tm_hour, tm->tm_min, tm->tm_sec, buf);
+	fflush(logf);
+}
+
+static void log_summary(time_t now)
+{
+	int total, ok, fail;
+	char line[256];
+
+	log_write("=== Watchdog Summary ===");
+
+	if (ring_query(now - WIN_1MIN, &total, &ok, &fail))
+		log_write("Last 1 min:  total=%d ok=%d fail=%d", total, ok, fail);
+	else
+		log_write("Last 1 min:  no data");
+
+	if (ring_query(now - WIN_15MIN, &total, &ok, &fail))
+		log_write("Last 15 min: total=%d ok=%d fail=%d", total, ok, fail);
+	else
+		log_write("Last 15 min: no data");
+
+	if (ring_query(now - WIN_30MIN, &total, &ok, &fail))
+		log_write("Last 30 min: total=%d ok=%d fail=%d", total, ok, fail);
+	else
+		log_write("Last 30 min: no data");
+}
 
 static int i2c_write(uint8_t reg, uint8_t val, int ms)
 {
@@ -64,7 +146,6 @@ static int i2c_read(uint8_t reg, uint8_t *val, int ms)
 	return 0;
 }
 
-// 检查指定寄存器数值是否是预期值
 static int i2c_check_val(uint8_t reg, uint8_t val, int ms)
 {
 	uint8_t t = 0;
@@ -79,7 +160,6 @@ static int i2c_check_val(uint8_t reg, uint8_t val, int ms)
 	return 0;
 }
 
-// 原版固件开机后对MCU的操作流程
 static int wdt_simulator()
 {
 	int retries;
@@ -108,7 +188,6 @@ static int wdt_simulator_lite()
 	i2c_write(0x51, 0x33, 8);
 }
 
-// 打开设备
 static int wdt_init(void)
 {
 	fd = open(I2C_DEV, O_RDWR);
@@ -127,35 +206,31 @@ static int wdt_init(void)
 	return 0;
 }
 
-// 原版固件中手动开启看门狗会执行的动作，仅读取寄存器，无实际效果
 static int wdt_enable()
 {
 	return i2c_check_val(0xb2, 0x00, 0);
 }
 
-// 原版固件中手动关闭看门狗会执行的动作
 static int wdt_disable()
 {
 	return i2c_write(0x32, 0x00, 0);
 }
 
-// 准备喂狗
 static int wdt_prepare()
 {
 	wdt_disable();
 	if (i2c_write(0x32, 0x01, 9) < 0) {
-		fprintf(stderr, "[smdt_wdt] wdt_prepare: enable failed\n");
+		log_write("ERROR: wdt_prepare enable failed");
 		return -1;
 	}
 	if (i2c_write(0x51, 0x33, 8) < 0) {
-		fprintf(stderr, "[smdt_wdt] wdt_prepare: set timeout failed\n");
+		log_write("ERROR: wdt_prepare set timeout failed");
 		return -1;
 	}
-	fprintf(stderr, "[smdt_wdt] watchdog prepared (i2c6 @ 0x62)\n");
+	log_write("watchdog prepared (i2c6 @ 0x62)");
 	return 0;
 }
 
-// 喂狗
 static int wdt_feed()
 {
 	return i2c_write(0x33, 0xab, 0);
@@ -164,32 +239,40 @@ static int wdt_feed()
 int main()
 {
 	int count = 0;
-	time_t t;
-	struct tm *tm;
+	time_t last_summary = 0;
 
-	if (wdt_init() < 0) {
+	logf = fopen(LOG_FILE, "w");
+	if (!logf) {
+		fprintf(stderr, "Cannot open %s: %s\n", LOG_FILE, strerror(errno));
 		return -1;
 	}
+
+	if (wdt_init() < 0) {
+		log_write("ERROR: cannot open %s", I2C_DEV);
+		return -1;
+	}
+	log_write("Open %s success", I2C_DEV);
 	wdt_prepare();
 
-	while (1) {	 // 无限循环
-		if (wdt_feed() < 0) {
-			t = time(NULL);
-			tm = localtime(&t);
-			fprintf(stderr, "[smdt_wdt] feed FAILED at %04d-%02d-%02d %02d:%02d:%02d (count=%d)\n",
-				tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
-				tm->tm_hour, tm->tm_min, tm->tm_sec, count);
-			break;
-		}
+	while (1) {
+		time_t now = time(NULL);
+		int ok = (wdt_feed() >= 0);
 		count++;
-		t = time(NULL);
-		tm = localtime(&t);
-		fprintf(stderr, "[smdt_wdt] feed OK #%d at %02d:%02d:%02d\n",
-			count, tm->tm_hour, tm->tm_min, tm->tm_sec);
-		// 延时 20 秒
-		sleep(20);
+		ring_push(now, ok);
+
+		if (ok)
+			log_write("feed OK total=%d", count);
+		else
+			log_write("feed FAILED total=%d", count);
+
+		if (now - last_summary >= 60) {
+			log_summary(now);
+			last_summary = now;
+		}
+
+		sleep(FEED_INTERVAL);
 	}
 
+	fclose(logf);
 	return 0;
 }
-
