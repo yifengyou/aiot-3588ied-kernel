@@ -104,12 +104,9 @@ mkimage -A arm64 -O linux -T kernel -C lzma \
   -a 0x40080000 -e 0x40080000 \
   -n "Recovery Kernel" \
   -d kernel.lzma kernel-uImage.lzma
-hdr_crc=$(mkimage -l kernel-uImage.lzma | awk -F': ' '/Data CRC/{print $2}')
-echo "uImage CRC: $hdr_crc"
+mkimage -l kernel-uImage.lzma
 
 mkfs.ext4 \
-  -O '^metadata_csum,^has_journal,^resize_inode' \
-  -m 0 -N 16 \
   -L recovery \
   recovery.img
 

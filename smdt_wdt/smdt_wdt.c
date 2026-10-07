@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <time.h>
 
 #define I2C_DEV "/dev/i2c-6"
 #define MCU_I2C_ADDR 0x62
@@ -143,9 +144,15 @@ static int wdt_prepare()
 {
 	wdt_disable();
 	if (i2c_write(0x32, 0x01, 9) < 0) {
+		fprintf(stderr, "[smdt_wdt] wdt_prepare: enable failed\n");
 		return -1;
 	}
-	return i2c_write(0x51, 0x33, 8);
+	if (i2c_write(0x51, 0x33, 8) < 0) {
+		fprintf(stderr, "[smdt_wdt] wdt_prepare: set timeout failed\n");
+		return -1;
+	}
+	fprintf(stderr, "[smdt_wdt] watchdog prepared (i2c6 @ 0x62)\n");
+	return 0;
 }
 
 // 喂狗
@@ -156,6 +163,10 @@ static int wdt_feed()
 
 int main()
 {
+	int count = 0;
+	time_t t;
+	struct tm *tm;
+
 	if (wdt_init() < 0) {
 		return -1;
 	}
@@ -163,8 +174,18 @@ int main()
 
 	while (1) {	 // 无限循环
 		if (wdt_feed() < 0) {
+			t = time(NULL);
+			tm = localtime(&t);
+			fprintf(stderr, "[smdt_wdt] feed FAILED at %04d-%02d-%02d %02d:%02d:%02d (count=%d)\n",
+				tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
+				tm->tm_hour, tm->tm_min, tm->tm_sec, count);
 			break;
 		}
+		count++;
+		t = time(NULL);
+		tm = localtime(&t);
+		fprintf(stderr, "[smdt_wdt] feed OK #%d at %02d:%02d:%02d\n",
+			count, tm->tm_hour, tm->tm_min, tm->tm_sec);
 		// 延时 20 秒
 		sleep(20);
 	}
