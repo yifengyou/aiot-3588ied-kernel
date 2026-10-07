@@ -305,13 +305,6 @@
 	status = "disabled";
 };
 
-&hdmi0_in {
-	hdmi0_in_vp0: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
-		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
-		remote-endpoint = <&vp0_out_hdmi0>;
-	};
-};
-
 &hdmi0_out {
 	hdmi0_out_con: endpoint {
 		remote-endpoint = <&hdmi0_con_in>;
@@ -1239,10 +1232,6 @@
 };
 
 &vp0 {
-	vp0_out_hdmi0: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
-		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
-		remote-endpoint = <&hdmi0_in_vp0>;
-	};
 	vp0_out_hdmi1: endpoint@ROCKCHIP_VOP2_EP_HDMI1 {
 		reg = <ROCKCHIP_VOP2_EP_HDMI1>;
 		remote-endpoint = <&hdmi1_in_vp0>;

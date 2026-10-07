@@ -4,7 +4,7 @@
 mode="$1"
 
 ips=""
-for ifc in eth2 eth3; do
+for ifc in eth1 do
 	a=$(ip -4 -o addr show dev "$ifc" scope global 2>/dev/null | awk '{split($4,x,"/"); print x[1]; exit}')
 	[ -n "$a" ] && ips="${ips:+$ips,}$a"
 done
