@@ -23,53 +23,58 @@ fmt_if() {
 line1=$(fmt_if eth0 WAN)
 line2=$(fmt_if br0 LAN)
 
-{
-	if [ "$mode" = refresh ]; then printf '\0338\033[0J'; else printf '\0337'; fi
-	printf '%s\n' ""
-	printf '%s\n' "                            _ooOoo_"
-	printf '%s\n' "                           o8888888o"
-	printf '%s\n' "                           88\" . \"88"
-	printf '%s\n' "                           (| -_- |)"
-	printf '%s\n' "                           O\\  =  /O"
-	printf '%s\n' "                        ____/\'---\\____"
-	printf '%s\n' "                      .\'  \\\\|     |//  \'."
-	printf '%s\n' "                     /  \\\\|||  :  |||//  \\"
-	printf '%s\n' "                    /  _||||| -:- |||||-  \\"
-	printf '%s\n' "                    |   | \\\\\\  -  /// |   |"
-	printf '%s\n' "                    | \\_|  \'\'\\---/\'\'  |   |"
-	printf '%s\n' "                    \\  .-\\__  \`-\'  ___/-. /"
-	printf '%s\n' "                  ___\`. .\'  /--.--\\  \`. . __"
-	printf '%s\n' "               .\"\" \'<  \`.___\\_<|>_/___.\'  >\'\"\"."
-	printf '%s\n' "              | | :  \`- \\\`;.\` _ /\\\`;.\`/ - \` : | |"
-	printf '%s\n' "              \\  \\ \`-.   \\_ __\\ /__ _/   .-\` /  /"
-	printf '%s\n' "         ======\`-.____\`.___ \\_____/___.-\`____.-\'======"
-	printf '%s\n' "                            \`=---=\'"
-	printf '%s\n' ""
-	printf '%s\n' "         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-	printf '%s\n' "                  Buddha Bless   No Downtime"
-	printf '%s\n' "                   No Bugs       Amen"
-	printf '%s\n' ""
-	printf '%s\n' "***************************************************************"
-	printf '%s\n' "  Welcome to RKdev System"
-	printf '%s\n' ""
-	printf '%s\n' "  OS: Alpine Linux (RK3588)"
-	printf '%s\n' "  Kernel: ${kver}"
-	printf '%s\n' "  ${line1}"
-	printf '%s\n' "  ${line2}"
-	printf '%s\n' "  Default Account: root/root"
-	printf '%s\n' "  Documentation: https://github.com/yifengyou/aiot-3588ied"
-	printf '%s\n' ""
-	printf '%s\n' "  Copyright (C) 2026 RKdev. All rights reserved."
-	printf '%s\n' "***************************************************************"
-	printf '%s\n' ""
-} > /etc/issue.tmp
+tmpf=$(mktemp)
 
-if cmp -s /etc/issue.tmp /etc/issue 2>/dev/null; then
-	rm -f /etc/issue.tmp
+if [ "$mode" = refresh ]; then printf '\0338\033[0J' > "$tmpf"; else printf '\0337' > "$tmpf"; fi
+
+cat >> "$tmpf" <<'ART'
+
+                            _ooOoo_
+                           o8888888o
+                           88" . "88
+                           (| -_- |)
+                           O/  =  /O
+                        ____/`---'/____
+                      .'  //|     |//  '.
+                     /  //|||  :  |||//  /
+                    /  _||||| -:- |||||-  /
+                    |   | ///  -  /// |   |
+                    | /_|  ''/---/''  |   |
+                    /  .-/__  `-`  ___/-. /
+                  ___`. .'  /--.--/  `. . __
+               ."" '<  `.__/_<|>_/___.'  >'"".
+              | | :  `- /;.` _ / /;.`/ - ` : | |
+              /  / `-.   /_ __/ /__ _/   .-` /  /
+         ======`-.____`.___ /_____/___.-`____.-'======
+                            `=---='
+
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                           Buddha Bless
+                  No Downtime, No Bugs, No Warnings
+
+***************************************************************
+  Welcome to RKdev System
+
+  OS: Alpine Linux (RK3588)
+  Kernel: KVER
+  LINE1
+  LINE2
+  Default Account: root/root
+  Documentation: https://github.com/yifengyou/aiot-3588ied
+
+  Copyright (C) 2026 RKdev. All rights reserved.
+***************************************************************
+
+ART
+
+sed -i -e "s|KVER|${kver}|" -e "s|LINE1|${line1}|" -e "s|LINE2|${line2}|" "$tmpf"
+
+if cmp -s "$tmpf" /etc/issue 2>/dev/null; then
+	rm -f "$tmpf"
 	exit 0
 fi
-	mv /etc/issue.tmp /etc/issue
-	cp /etc/issue /etc/motd
+mv "$tmpf" /etc/issue
+cp /etc/issue /etc/motd
 
 if [ "$mode" = refresh ]; then
 	for p in $(pidof getty); do

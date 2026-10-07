@@ -1,3 +1,27 @@
+C:Q1P2R6ni0G+WAKe/797LKimvlOrNE=
+P:acl-libs
+V:2.3.2-r1
+A:aarch64
+S:15295
+I:67400
+T:Access control list utilities (libraries)
+U:https://savannah.nongnu.org/projects/acl
+L:LGPL-2.1-or-later AND GPL-2.0-or-later
+o:acl
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1735923921
+c:8bac74716d06c84627ab02d101fd9d2bafd0a34c
+D:so:libc.musl-aarch64.so.1
+p:so:libacl.so.1=1.1.2302
+F:usr
+F:usr/lib
+R:libacl.so.1
+a:0:0:777
+Z:Q1tO6n8mNmxrWYcNE/D0ES1Q4VF9Y=
+R:libacl.so.1.1.2302
+a:0:0:755
+Z:Q1O0Yxgec/ExuU7SJImhOe7lgn3hs=
+
 C:Q1+WrlvNiA9IbFoFXxl7dBVwlwuU8=
 P:agetty
 V:2.42.1-r0
@@ -1499,6 +1523,38 @@ R:ethtool
 a:0:0:755
 Z:Q11f4snk37o+F/xx0WsdicjpkRjNw=
 
+C:Q14vsTo9t2HNptQ43jCjNHkFBv71w=
+P:ifupdown-ng-iproute2
+V:0.13.0-r0
+A:aarch64
+S:4200
+I:5852
+T:ifupdown-ng integration for iproute2
+U:https://github.com/ifupdown-ng/ifupdown-ng
+L:ISC
+o:ifupdown-ng
+m:Ariadne Conill <ariadne@dereferenced.org>
+t:1778389832
+c:2c26ffc5e83fc3bc626f2516235b465e67606bf9
+k:900
+D:iproute2-minimal
+i:ifupdown-ng=0.13.0-r0 iproute2-minimal
+F:usr
+F:usr/libexec
+F:usr/libexec/ifupdown-ng
+R:gre
+a:0:0:755
+Z:Q1aD0pK9kf9blGdfS/FRFLCJ6EKFk=
+R:mpls
+a:0:0:755
+Z:Q1UbD6sWaYYh+8i7jlA0QguumoBZ4=
+R:vrf
+a:0:0:755
+Z:Q11wAdszbdOAlSSj4Cyy0KHuI2Ml4=
+R:vxlan
+a:0:0:755
+Z:Q1rQnemDL261qDVY5L8laQKkJB8qA=
+
 C:Q1y0egRdFgJmjOsdfMAcILIvvG9vE=
 P:inih
 V:62-r0
@@ -1570,6 +1626,154 @@ F:etc/init.d
 R:iperf3
 a:0:0:755
 Z:Q1lTmLiJzCnAxKOvPMMQUaXzgWdeY=
+
+C:Q1kG2xyd9s6vfCyb09MDOCwKqAYK4=
+P:iproute2
+V:7.0.0-r0
+A:aarch64
+S:197987
+I:843586
+T:IP Routing Utilities
+U:https://wiki.linuxfoundation.org/networking/iproute2
+L:GPL-2.0-or-later
+o:iproute2
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1776346063
+c:3ee752ad0c8445c8105177cd5cebdd730789bcd8
+D:iproute2-minimal iproute2-tc iproute2-ss /bin/sh so:libc.musl-aarch64.so.1 so:libcap.so.2 so:libmnl.so.0
+p:cmd:bridge=7.0.0-r0 cmd:ctstat=7.0.0-r0 cmd:dpll=7.0.0-r0 cmd:genl=7.0.0-r0 cmd:ifstat=7.0.0-r0 cmd:lnstat=7.0.0-r0 cmd:netshaper=7.0.0-r0 cmd:nstat=7.0.0-r0 cmd:routel=7.0.0-r0 cmd:rtacct=7.0.0-r0 cmd:rtmon=7.0.0-r0 cmd:rtstat=7.0.0-r0
+F:sbin
+R:bridge
+a:0:0:755
+Z:Q11zySMbQWdKQ3YXtpYGUpON+dZb4=
+R:ctstat
+a:0:0:777
+Z:Q1jBlJP4zb8WkssNn3gD+ComvArcQ=
+R:dpll
+a:0:0:755
+Z:Q1+Xhh8z9jVtvMQI9X5adVbDysqno=
+R:genl
+a:0:0:755
+Z:Q1sZFeu/tG/zjHqQIeK7OiduH2d74=
+R:ifstat
+a:0:0:755
+Z:Q1YIktqEgelcvuMdpsSEqbsbzKxoQ=
+R:lnstat
+a:0:0:755
+Z:Q1zBaezfwWG2OvcSxNaBZSIgcPwfI=
+R:netshaper
+a:0:0:755
+Z:Q1mQteRSoKr8jOoER0wZj7kciBImw=
+R:nstat
+a:0:0:755
+Z:Q1r+Y2MzfMRkAgGm15pe75ONH1qG4=
+R:routel
+a:0:0:755
+Z:Q1bCiLGPVjxQ/LEUNZ/zxux78CK3M=
+R:rtacct
+a:0:0:755
+Z:Q10e7SflAVpd+BHd0601Ym67hkBH4=
+R:rtmon
+a:0:0:755
+Z:Q1qd4g2atew/SpqVTfrZIRMumD+AQ=
+R:rtstat
+a:0:0:777
+Z:Q1jBlJP4zb8WkssNn3gD+ComvArcQ=
+
+C:Q11L7WmvnQpHyyKOpSSVZpBwm9oT8=
+P:iproute2-minimal
+V:7.0.0-r0
+A:aarch64
+S:284024
+I:684395
+T:IP Routing Utilities (/sbin/ip only)
+U:https://wiki.linuxfoundation.org/networking/iproute2
+L:GPL-2.0-or-later
+o:iproute2
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1776346063
+c:3ee752ad0c8445c8105177cd5cebdd730789bcd8
+D:so:libc.musl-aarch64.so.1 so:libcap.so.2 so:libelf.so.1 so:libmnl.so.0
+p:cmd:ip=7.0.0-r0
+r:iproute2
+F:sbin
+R:ip
+a:0:0:755
+Z:Q1YnP8a4fY5zfCEnRCpuoiZNvW+QU=
+F:usr
+F:usr/share
+F:usr/share/iproute2
+R:bpf_pinning
+Z:Q1SkKkwvB44KLDhFvFwKV8F63BRLs=
+R:ematch_map
+Z:Q1ZqeOinGu9ubqxWhPvZjBByIWjQc=
+R:group
+Z:Q1logdIO6dUht01L3mwS1vG9shDJY=
+R:nl_protos
+Z:Q1yajmxZBn8Na8X8xKbOoLW92vMU8=
+R:rt_dsfield
+Z:Q10ryZjxTLyZfNBTgk0htWHbON8ok=
+R:rt_protos
+Z:Q1EgEkWcDQmvF68oa97/z+onktRWk=
+R:rt_realms
+Z:Q1q2Ryb8/rBQuGqzGCXLey7GcAAC0=
+R:rt_scopes
+Z:Q1caTHGvSFvKV6VittDHP+wjqTwRw=
+R:rt_tables
+Z:Q12m7NPCcrIqSVp0mMHaLmg0i44is=
+
+C:Q14o2RfkImoWkXzhDVjYb+uRK3vBM=
+P:iproute2-ss
+V:7.0.0-r0
+A:aarch64
+S:48306
+I:135576
+T:IP Routing Utilities (socket statistics tool)
+U:https://wiki.linuxfoundation.org/networking/iproute2
+L:GPL-2.0-or-later
+o:iproute2
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1776346063
+c:3ee752ad0c8445c8105177cd5cebdd730789bcd8
+D:so:libc.musl-aarch64.so.1 so:libcap.so.2 so:libmnl.so.0
+p:cmd:ss=7.0.0-r0
+r:iproute2
+F:sbin
+R:ss
+a:0:0:755
+Z:Q17d0gbb9KY6uBEkDobmJqeeuJMLA=
+
+C:Q17SEWvvRDT31CS3dgbJtnMgKiSys=
+P:iproute2-tc
+V:7.0.0-r0
+A:aarch64
+S:264680
+I:645570
+T:IP Routing Utilities (traffic control and XDP support)
+U:https://wiki.linuxfoundation.org/networking/iproute2
+L:GPL-2.0-or-later
+o:iproute2
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1776346063
+c:3ee752ad0c8445c8105177cd5cebdd730789bcd8
+D:so:libc.musl-aarch64.so.1 so:libcap.so.2 so:libelf.so.1 so:libmnl.so.0 so:libxtables.so.12
+p:cmd:tc=7.0.0-r0
+r:iproute2
+F:sbin
+R:tc
+a:0:0:755
+Z:Q1NY2YEnPSC+OM9u1BoHaUwDrnhzc=
+F:usr
+F:usr/lib
+F:usr/lib/tc
+R:experimental.dist
+Z:Q11y/FeedFGESUvbwIsOOV6QVSvl4=
+R:normal.dist
+Z:Q1sxEKGuqf3zgCz2MMtoCKXYa68Hw=
+R:pareto.dist
+Z:Q1zrvlWeaxsX/YCFWmNThjUb9Eis0=
+R:paretonormal.dist
+Z:Q1ce0f6CqdK1+EbK2YVAmmDfFYz4w=
 
 C:Q1aJgo8Ys9WUHBi+RJNNokPd8caUI=
 P:iptables
@@ -2363,6 +2567,30 @@ R:libedit.so.0.0.77
 a:0:0:755
 Z:Q1fJemlRDJcihGwpjfKDBNSZ+TSfc=
 
+C:Q1RCjq5C/BE4wYYYUjB33eFah9qj4=
+P:libelf
+V:0.195-r0
+A:aarch64
+S:44727
+I:133080
+T:Library to read, modify and create ELF files
+U:https://sourceware.org/elfutils/
+L:GPL-3.0-or-later AND ( GPL-2.0-or-later OR LGPL-3.0-or-later )
+o:elfutils
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1776354702
+c:8f13294206888f3dd44ed74a8eb3dd9934499e81
+D:so:libc.musl-aarch64.so.1 so:libz.so.1 so:libzstd.so.1
+p:elfutils-libelf=0.195-r0 so:libelf.so.1=0
+F:usr
+F:usr/lib
+R:libelf-0.195.so
+a:0:0:755
+Z:Q1gNv/wD32B+q13Sa1Xc2kNaAVH44=
+R:libelf.so.1
+a:0:0:777
+Z:Q1vzu5hGWG+kLkNqk0pBP6kFUzSzo=
+
 C:Q1EDvc3eO5l5OfKgaom/ThzmoDz84=
 P:libfdisk
 V:2.42.1-r0
@@ -2504,6 +2732,66 @@ Z:Q1WiLBXNmzTIKEOxdgYlHHE61oXXc=
 R:libnftnl.so.11.7.0
 a:0:0:755
 Z:Q1WS5yyc+WJl/NCGpBB24WD2xn6fU=
+
+C:Q1T9nVN83H0bEEaHvpq4KsCGsghfQ=
+P:libnl3
+V:3.11.0-r0
+A:aarch64
+S:333316
+I:1086734
+T:Library for applications dealing with netlink sockets
+U:http://www.infradead.org/~tgr/libnl/
+L:LGPL-2.1-or-later
+o:libnl3
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1732101951
+c:4084996615c2a6601e26eedde99e3ae66e7d6ab7
+D:so:libc.musl-aarch64.so.1
+p:so:libnl-3.so.200=200.26.0 so:libnl-genl-3.so.200=200.26.0 so:libnl-idiag-3.so.200=200.26.0 so:libnl-nf-3.so.200=200.26.0 so:libnl-route-3.so.200=200.26.0 so:libnl-xfrm-3.so.200=200.26.0
+F:etc
+F:etc/libnl
+R:classid
+Z:Q1cpiwPlLXQ3rf+wusoslQZ4s9Dko=
+R:pktloc
+Z:Q1M6PJCSia18mk+hFFBRDaI8JnKNM=
+F:usr
+F:usr/lib
+R:libnl-3.so.200
+a:0:0:777
+Z:Q1Ak1ApQQ3U0IYSdnTA0Zy96DsRt4=
+R:libnl-3.so.200.26.0
+a:0:0:755
+Z:Q1cHvE7x3eqwhAjlaY/jyfyDdZTV0=
+R:libnl-genl-3.so.200
+a:0:0:777
+Z:Q184w94MhHPSrqcKoVmaKd6Y0vVbs=
+R:libnl-genl-3.so.200.26.0
+a:0:0:755
+Z:Q1ycY5Kbz7BE0dyT5E4IBaQ6H2Lqw=
+R:libnl-idiag-3.so.200
+a:0:0:777
+Z:Q1pP2/AAzwVaqGvArz4wGMJyaPz0o=
+R:libnl-idiag-3.so.200.26.0
+a:0:0:755
+Z:Q156SLGAf+pWfmPrJGSt9bLfYyJ64=
+R:libnl-nf-3.so.200
+a:0:0:777
+Z:Q1RblmpJvj6dBNFzSjXQMnr0L8WmE=
+R:libnl-nf-3.so.200.26.0
+a:0:0:755
+Z:Q1Uit/K8F4lf8JNPysaaLynXwPn9Y=
+R:libnl-route-3.so.200
+a:0:0:777
+Z:Q1XY4l6VCPhbtio3cp6pHXK9FwoIk=
+R:libnl-route-3.so.200.26.0
+a:0:0:755
+Z:Q1IMlwdiKO2YvJJxZQLnZMydiL94w=
+R:libnl-xfrm-3.so.200
+a:0:0:777
+Z:Q1qJ4hJWG7PsoRoONJoBP4QoNisu8=
+R:libnl-xfrm-3.so.200.26.0
+a:0:0:755
+Z:Q108swpP+OVVB6B/ZemMfKwWtKYx4=
 
 C:Q19ynlVcXxu5ODZyUUNYa5s8cACmE=
 P:libsmartcols
@@ -2648,6 +2936,30 @@ Z:Q1p/VIKZDAOYwjsNO27jZ8FTNvt7I=
 R:libxtables.so.12.7.0
 a:0:0:755
 Z:Q1KVWmkIc9GLhBNv8Wq7ax5AFX5nY=
+
+C:Q18dDF5q3vFk9W0HzFqymEQLgoO78=
+P:libxxhash
+V:0.8.3-r1
+A:aarch64
+S:21041
+I:67240
+T:Extremely fast non-cryptographic hash algorithm (libraries)
+U:https://cyan4973.github.io/xxHash/
+L:BSD-2-Clause
+o:xxhash
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1772466579
+c:3b2e469e223a5cb31932b1eae30c266e26b30148
+D:so:libc.musl-aarch64.so.1
+p:so:libxxhash.so.0=0.8.3
+F:usr
+F:usr/lib
+R:libxxhash.so.0
+a:0:0:777
+Z:Q1e0Xv711px1feNWuivhrQt0vlbH4=
+R:libxxhash.so.0.8.3
+a:0:0:755
+Z:Q1zqQG894p661rZkpsakfFxEK5m14=
 
 C:Q173JvGHNIdo6rklO3ffC8MlQ3Wfo=
 P:linux-pam
@@ -3225,6 +3537,54 @@ F:etc/init.d
 R:lvm
 a:0:0:755
 Z:Q1xiXGePjTEGjB98/L1DRqOH1GGW8=
+
+C:Q1RioRKt15XaaI2RhIih1C8TkbOTU=
+P:lz4-libs
+V:1.10.0-r1
+A:aarch64
+S:82505
+I:198392
+T:LZ4 is lossless compression algorithm with fast decoder @ multiple GB/s per core. (libraries)
+U:https://github.com/lz4/lz4
+L:BSD-2-Clause AND GPL-2.0-or-later
+o:lz4
+m:Stuart Cardall <developer@it-offshore.co.uk>
+t:1773270798
+c:1f16962f34234a77fab0f4651459c4381b4a0cd6
+D:so:libc.musl-aarch64.so.1
+p:so:liblz4.so.1=1.10.0
+F:usr
+F:usr/lib
+R:liblz4.so.1
+a:0:0:777
+Z:Q1Ayj6Lx/B7VDjD3ZgMwQFGlfAMKo=
+R:liblz4.so.1.10.0
+a:0:0:755
+Z:Q1ds3Lgj8mpREheufm47Pz3CAtMAw=
+
+C:Q1CLFt/Sy+JvpxSWnUk11NWib5ugM=
+P:lzo
+V:2.10-r5
+A:aarch64
+S:90160
+I:263928
+T:LZO -- a real-time data compression library
+U:https://www.oberhumer.com/opensource/lzo
+L:GPL-2.0-or-later
+o:lzo
+m:Michael Mason <ms13sp@gmail.com>
+t:1750436962
+c:03fe9a0a61940d07592e897e7a5983e2c7d91fff
+D:so:libc.musl-aarch64.so.1
+p:so:liblzo2.so.2=2.0.0
+F:usr
+F:usr/lib
+R:liblzo2.so.2
+a:0:0:777
+Z:Q1uHpcHKrzs5PdY/JGXl1bgQl8S8s=
+R:liblzo2.so.2.0.0
+a:0:0:755
+Z:Q1RN/PNkH4mww+IM5QqUUVb18T+aA=
 
 C:Q1Jzn0HXckXNRBtbz1QAPw5snanNw=
 P:mcookie
@@ -4155,6 +4515,69 @@ R:sftp-server
 a:0:0:755
 Z:Q1U09ovAEojv5V3hWEFa38SZISp6o=
 
+C:Q1wMUzAtO9UBFjTonbpZhf3Wow6gY=
+P:openvpn
+V:2.7.7-r0
+A:aarch64
+S:379526
+I:932237
+T:Robust, and highly configurable VPN (Virtual Private Network)
+U:https://openvpn.net/
+L:GPL-2.0-only WITH openvpn-openssl-exception
+o:openvpn
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1789032202
+c:4df00352ee933dcd4e93012635ae95129a93063a
+D:iproute2-minimal /bin/sh so:libc.musl-aarch64.so.1 so:libcap-ng.so.0 so:libcrypto.so.3 so:liblz4.so.1 so:liblzo2.so.2 so:libnl-3.so.200 so:libnl-genl-3.so.200 so:libpkcs11-helper.so.1 so:libssl.so.3
+p:cmd:openvpn=2.7.7-r0
+F:etc
+F:etc/openvpn
+R:down.sh
+a:0:0:755
+Z:Q1Dp+U7x16Fl/IA6+TAzN8F4aB21s=
+R:up.sh
+a:0:0:755
+Z:Q1YyUd8Mg9rn+y+tbs2Tl6hW8PDow=
+F:usr
+F:usr/lib
+F:usr/lib/openvpn
+F:usr/lib/openvpn/plugins
+R:openvpn-plugin-down-root.so
+a:0:0:755
+Z:Q1SLi6AzgYPdpx4bJW7yOlT3yiKXs=
+F:usr/libexec
+F:usr/libexec/openvpn
+R:dns-updown
+a:0:0:755
+Z:Q17OsJ7nKeqDopJYktbf2Jl+4PuF4=
+F:usr/sbin
+R:openvpn
+a:0:0:755
+Z:Q1kKXnT9SiKPapzA0HiQOxc8sqgVI=
+
+C:Q1Y8Zh7xK+y4xPMJRz8SSlQhdUmCE=
+P:openvpn-openrc
+V:2.7.7-r0
+A:aarch64
+S:3834
+I:4912
+T:Robust, and highly configurable VPN (Virtual Private Network) (OpenRC init scripts)
+U:https://openvpn.net/
+L:GPL-2.0-only WITH openvpn-openssl-exception
+o:openvpn
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1789032202
+c:4df00352ee933dcd4e93012635ae95129a93063a
+i:openrc openvpn=2.7.7-r0
+F:etc
+F:etc/conf.d
+R:openvpn
+Z:Q1rJAbInc6kWkUibyKEwdUn0wUuds=
+F:etc/init.d
+R:openvpn
+a:0:0:755
+Z:Q1AisS0SEUz6TG61WsxVTxLOFqR9s=
+
 C:Q1sx9zruHEPE+7dK8p9Y8jzIUUTME=
 P:partx
 V:2.42.1-r0
@@ -4228,6 +4651,30 @@ Z:Q1CihHJVbBs5sDn6lW5Pzdz6HFgho=
 R:libpci.so.3.15.0
 Z:Q1olkzuoLfLNQ+HNR1zgERAsDkBVA=
 
+C:Q16EJWFa9Y2foH6H2b/NxRDG5hAKg=
+P:pkcs11-helper
+V:1.31.0-r0
+A:aarch64
+S:42258
+I:133144
+T:Library that simplifies the interaction with PKCS#11 providers
+U:https://github.com/OpenSC/pkcs11-helper
+L:GPL-2.0-only AND BSD-3-Clause
+o:pkcs11-helper
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1765437842
+c:132bfd58ef91796fe1575db4deef933ce6af4b2a
+D:so:libc.musl-aarch64.so.1 so:libcrypto.so.3
+p:so:libpkcs11-helper.so.1=1.0.0
+F:usr
+F:usr/lib
+R:libpkcs11-helper.so.1
+a:0:0:777
+Z:Q1ZV/ryMOhyeiVzwcy7ltlJcVdUQU=
+R:libpkcs11-helper.so.1.0.0
+a:0:0:755
+Z:Q1eaRugJlK0eHB0vIZGR6D50CgHG8=
+
 C:Q1zJBThxD2zly3sKr5Q3DmbaFN320=
 P:popt
 V:1.19-r4
@@ -4251,6 +4698,61 @@ Z:Q1OaJVEWraaPJLHqfzz+cUsFnGRqQ=
 R:libpopt.so.0.0.2
 a:0:0:755
 Z:Q1bWoSCCFj4VIwFm6bT4nYZciIVqs=
+
+C:Q1ehL56TRVvb8NbPEmqLWfF5PPIBo=
+P:rsync
+V:3.5.0-r0
+A:aarch64
+S:234137
+I:482545
+T:A file transfer program to keep remote files in sync
+U:https://rsync.samba.org/
+L:GPL-3.0-or-later
+o:rsync
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1788162969
+c:8cc5798059868c71d4c2efa296afe835c6602689
+k:900
+D:so:libacl.so.1 so:libc.musl-aarch64.so.1 so:liblz4.so.1 so:libpopt.so.0 so:libxxhash.so.0 so:libz.so.1 so:libzstd.so.1
+p:cmd:rsync-ssl=3.5.0-r0 cmd:rsync=3.5.0-r0
+F:etc
+R:rsyncd.conf
+Z:Q1hEHaJu4qAA3ZbXXZORysFaewymM=
+F:etc/logrotate.d
+R:rsyncd
+Z:Q10ne/rIcyUjNACPy/NQ/okM38jOU=
+F:usr
+F:usr/bin
+R:rsync
+a:0:0:755
+Z:Q1Mk4iG9tSUoW9kn1nehI6buGdJe4=
+R:rsync-ssl
+a:0:0:755
+Z:Q1dSc2NmmkwS6Vi2TU6w7YpBHatOY=
+
+C:Q1CVD17hWac4EIA1JqlCA0HcjP5mA=
+P:rsync-openrc
+V:3.5.0-r0
+A:aarch64
+S:2032
+I:607
+T:A file transfer program to keep remote files in sync (OpenRC init scripts)
+U:https://rsync.samba.org/
+L:GPL-3.0-or-later
+o:rsync
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1788162969
+c:8cc5798059868c71d4c2efa296afe835c6602689
+k:900
+i:openrc rsync=3.5.0-r0
+F:etc
+F:etc/conf.d
+R:rsyncd
+Z:Q1xD+qOPd63QJ258NhZGquBXdw5+g=
+F:etc/init.d
+R:rsyncd
+a:0:0:755
+Z:Q104GCAcX9BXJjcvY3HNg0RwnH4VU=
 
 C:Q1ZPCwzc4K00gcWus7LPzHt+DV0i8=
 P:runuser
@@ -5093,4 +5595,28 @@ Z:Q1tB+V0rGZ237TINW/WVwfykixU6w=
 R:libz.so.1.3.2
 a:0:0:755
 Z:Q1mz0t8Hl3iOZ0NVY7G2tasx+qcAE=
+
+C:Q1UrGFE6B78rsNBjRohoH37c42uco=
+P:zstd-libs
+V:1.5.7-r2
+A:aarch64
+S:365383
+I:657240
+T:Zstandard - Fast real-time compression algorithm (libraries)
+U:https://facebook.github.io/zstd/
+L:BSD-3-Clause OR GPL-2.0-or-later
+o:zstd
+m:Natanael Copa <ncopa@alpinelinux.org>
+t:1753704404
+c:3c6e2ee2b16f403d53eab39c4426eb61f003c322
+D:so:libc.musl-aarch64.so.1
+p:so:libzstd.so.1=1.5.7
+F:usr
+F:usr/lib
+R:libzstd.so.1
+a:0:0:777
+Z:Q1AZb7n4ySmGzGV+JSB5vAJcht86U=
+R:libzstd.so.1.5.7
+a:0:0:755
+Z:Q1N6Hlm0Z4uBYjv/F32rzx7YMOUrA=
 

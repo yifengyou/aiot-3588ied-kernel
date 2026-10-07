@@ -11,8 +11,10 @@ e2fsprogs
 e2fsprogs-extra
 ethtool
 gcompat
+hexdump
 htop
 iperf3
+iproute2
 iptables
 lvm2
 musl-utils
@@ -21,7 +23,9 @@ openssh-client
 openssh-client-common
 openssh-server
 openssh-sftp-server
+openvpn
 pciutils
+rsync
 sgdisk
 smartmontools
 u-boot-tools
