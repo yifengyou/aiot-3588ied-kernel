@@ -3,6 +3,7 @@
 set -ex
 
 WORKDIR=$(pwd)
+TIMESTAMP=$(date +%Y%m%d)
 
 # update rkdev
 cd ${WORKDIR}/rkdev
@@ -129,6 +130,10 @@ umount /mnt
 sync
 mkdir -p ${WORKDIR}/output/
 cp -a recovery.img ${WORKDIR}/output/recovery.img
+cp -a recovery.img ${WORKDIR}/output/recovery_${TIMESTAMP}.img
+
+cp -a kernel-uImage.lzma ${WORKDIR}/output/kernel-uImage.lzma
+cp -a kernel-uImage.lzma ${WORKDIR}/output/kernel-uImage_${TIMESTAMP}.lzma
 sync
 
 ls -alh ${WORKDIR}/output/*.img

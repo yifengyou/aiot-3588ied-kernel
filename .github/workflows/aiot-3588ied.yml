@@ -93,10 +93,7 @@ jobs:
           replacesArtifacts: true
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            # AIoT 3588IED Recovery 镜像
-
-            - 当前发布版本为中间构建产物，仅供开发测试使用，请勿用于生产环境或关键设备
-            - 出厂设备默认仅配备 SPI Nor Flash，未焊接 eMMC。由于 SPI Flash 与 eMMC 共用硬件引脚，二者物理上互斥，设备只能选择其中一种作为启动介质，请根据实际硬件配置选择对应的固件。
+            # 视美泰 AIoT-3588IED Recovery 镜像
 
             ## 免责声明
 
